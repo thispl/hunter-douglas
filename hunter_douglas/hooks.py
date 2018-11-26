@@ -30,7 +30,7 @@ app_license = "MIT"
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
-
+# on_login = "hunter_douglas.custom.send_birthday_wish"
 # Home Pages
 # ----------
 
@@ -79,24 +79,32 @@ app_license = "MIT"
 # ---------------
 # Hook on document methods and events
 
-# doc_events = {
-# 	"*": {
-# 		"on_update": "method",
-# 		"on_cancel": "method",
-# 		"on_trash": "method"
-#	}
-# }
+doc_events = {
+    "Attendance Permission":
+    {
+        "on_submit": "hunter_douglas.custom.update_att",
+    },
+	"On Duty Application":
+    {
+        "on_submit": "hunter_douglas.custom.on_duty_mark",
+    }
+	# "*": {
+	# 	"on_update": "method",
+	# 	"on_cancel": "method",
+	# 	"on_trash": "method"
+	# }
+}
 
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
+scheduler_events = {
 # 	"all": [
 # 		"hunter_douglas.tasks.all"
 # 	],
-# 	"daily": [
-# 		"hunter_douglas.tasks.daily"
-# 	],
+	"daily": [
+		"hunter_douglas.custom.fetch_att"
+	],
 # 	"hourly": [
 # 		"hunter_douglas.tasks.hourly"
 # 	],
@@ -106,7 +114,7 @@ app_license = "MIT"
 # 	"monthly": [
 # 		"hunter_douglas.tasks.monthly"
 # 	]
-# }
+}
 
 # Testing
 # -------

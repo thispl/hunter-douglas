@@ -1,0 +1,27 @@
+{
+ "add_total_row": 0, 
+ "apply_user_permissions": 1, 
+ "creation": "2018-12-06 11:02:50.659665", 
+ "disabled": 0, 
+ "docstatus": 0, 
+ "doctype": "Report", 
+ "idx": 0, 
+ "is_standard": "Yes", 
+ "modified": "2018-12-06 11:02:50.659665", 
+ "modified_by": "Administrator", 
+ "module": "Hunter Douglas", 
+ "name": "Manpower Recruitment", 
+ "owner": "Administrator", 
+ "query": "SELECT `tabOffer Letter`.name AS \"Offer Letter Name:Link/Offer Letter:150\", \n       `tabJob Opening`.`job_title` AS \"Title:Data:150\",\n       `tabOffer Letter`.applicant_name AS \"Offered To:Data:150\",\n       `tabJob Opening`.`vertical` AS \"Vertical:Data:150\",\n       `tabJob Opening`.`location` AS \"Location:Data:150\",\n       `tabJob Opening`.`position_status` AS \"Position Status:Data:150\",\n       `tabJob Opening`.`position_open` AS \"Position Open:Data:150\",\n       `tabJob Opening`.`mrf_received` AS \"MRF Received:Date:150\",\n       `tabOffer Letter`.offer_date AS \"Offer Date:Date:150\",\n       `tabOffer Letter`.tat AS \"TAT:Int:100\",\n       `tabOffer Letter`.date_of_joining AS \"Date of Joining:Date:150\",\n       `tabOffer Letter`.type AS \"Type:Data:150\",\n        CASE \n         WHEN `tabOffer Letter`.type = \"Replacement\" THEN `tabOffer Letter`.replacement_of\n         ELSE ''\n        END AS \"Replacement Of:Data:150\",\n        CASE \n         WHEN `tabJob Opening`.is_budgeted = 1 THEN 'Budgeted'\n         ELSE 'Non Budgeted'\n        END AS \"Status:Data:150\",\n       `tabOffer Letter`.source AS \"Source:Data:150\"\nFROM `tabJob Opening`\nLEFT JOIN `tabOffer Letter` ON `tabJob Opening`.name = `tabOffer Letter`.job_opening\n", 
+ "ref_doctype": "Job Opening", 
+ "report_name": "Manpower Recruitment", 
+ "report_type": "Query Report", 
+ "roles": [
+  {
+   "role": "HR User"
+  }, 
+  {
+   "role": "Guest"
+  }
+ ]
+}

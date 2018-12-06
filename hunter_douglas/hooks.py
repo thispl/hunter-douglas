@@ -41,7 +41,7 @@ app_license = "MIT"
 # role_home_page = {
 #	"Role": "home_page"
 # }
-
+update_website_context = "hunter_douglas.custom.update_website_context"
 # Website user home page (by function)
 # get_website_user_home_page = "hunter_douglas.utils.get_home_page"
 
@@ -80,14 +80,18 @@ app_license = "MIT"
 # Hook on document methods and events
 
 doc_events = {
-    "Attendance Permission":
+    "Movement Register":
     {
-        "on_submit": "hunter_douglas.custom.update_att",
+        "on_submit": "hunter_douglas.hunter_douglas.doctype.movement_register.movement_register.update_att",
     },
 	"On Duty Application":
     {
-        "on_submit": "hunter_douglas.custom.on_duty_mark",
-    }
+        "on_submit": "hunter_douglas.hunter_douglas.doctype.on_duty_application.on_duty_application.on_duty_mark",
+    },
+	# "Travel Management":
+    # {
+    #     "on_submit": "hunter_douglas.hunter_douglas.doctype.travel_management.travel_management.travel_att_mark",
+    # }
 	# "*": {
 	# 	"on_update": "method",
 	# 	"on_cancel": "method",

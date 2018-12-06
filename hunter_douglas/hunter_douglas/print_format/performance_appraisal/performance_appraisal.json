@@ -1,0 +1,22 @@
+{
+ "align_labels_right": 0, 
+ "creation": "2018-11-28 10:00:05.125666", 
+ "custom_format": 1, 
+ "disabled": 0, 
+ "doc_type": "Performance Management", 
+ "docstatus": 0, 
+ "doctype": "Print Format", 
+ "font": "Default", 
+ "html": "<html>\n<table border=\"1\" >\n<tr>\n<td>Employee Name: {{ doc.employee_name }}</td>\n<td>Employee Code: {{ doc.employee_code }}</td>\n</tr>\n<tr>\n<td>Cost Code:  {{ doc.cost_code }}</td>\n<td>Designation:  {{ doc.designation }}</td>\n</tr>\n<tr>\n<td>Department:   {{ doc.department }}</td>\n<td>Date Of Joining:   {{ doc.date_of_joining }}</td>\n</tr>\n<tr>\n<td>Year of Last Promotion:  {{ doc.year_of_last_promotion }}</td>\n<td>Location:   {{ doc.location }}</td>\n</tr>\n</table>\n</br></br><h3>GUIDE LINES FOR EVALUATION </h3>\n<ol type=\"i\">\n  <li>In Self Appraisal Section please provide specific & precise information on your achievements & learning </li>\n  <li>KPI Assessment carries 100% weightage & Competency Assessment carries 100% weightage</li>\n  <li>KPI Assessment & Competency Assessment should be done on the 4 point Assessment</li>\n<h3>Scale as under</h3>\n   <li>)<b> Scale of Assessment: </b>4 To 1 (4 being the highest and 1 being the lowest) </li>\n</ol></br>\n<table border=\"1\" >\n<tr>\n<td align=\"center\" style=\"background-color:Gainsboro\" width = \"25%\"><b>4</td>\n<td align=\"center\" style=\"background-color:Gainsboro\" width = \"25%\"><b>3</td>\n<td align=\"center\" style=\"background-color:Gainsboro\" width = \"25%\"><b>2</td>\n<td align=\"center\" style=\"background-color:Gainsboro\" width = \"25%\"><b>1</td>\n</tr>\n<tr>\n<td align = \"center\"><b>Excellent</b></td>\n<td align = \"center\"><b>Meets Expectation </b></td>\n<td align = \"center\"><b>Average</b></td>\n<td align = \"center\"><b>Needs Improvement &\nUnder performance</b></td>\n</tr>\n</table></br>\n<h3 align=\"center\"><b>SELF APPRAISAL</b></h3>\n<h5 align=\"center\">(Appraisee to complete before the interview )</h5>\n<table border=\"1\"  width=\"650\">\n<tr>\n<td align=\"center\"><b>State your actual & attained targets</b></br><b>(Rupees in Thousands)*</b>Only for Sales Staffs </br></br>\n<table border=\"1\" width=\"600\">\n<tr>\n<td width =\"25%\"></td>\n<td width =\"25%\">2015</td>\n<td width =\"25%\">2016</td>\n<td width =\"25%\">2017</td></tr>\n<tr>\n<td>Actual Targets</td>\n<td></td>\n<td></td>\n<td></td>\n</tr>\n<tr>\n<td>Attained Targets </td>\n<td></td>\n<td></td>\n<td></td>\n</tr>\n</table></td>\n<br></br></br></br></br>\n</tr>\n</table>\n<div class=\"page-break\"></div></br>\n<h4 align=\"center\">(Appraisee to complete before the interview) </h4>\n<h3><b>Discussion points: </b></h3>\n<table border=1 width =\"650\">\n<tr>\n<td>What according to you was your key achievement in the past 12 months? (Brief)</td>\n</tr>\n<tr ><td>{{ doc.small_text_12 }}</td></tr>\n</table></br></br></br></br>\n<table border=1 width =\"650\">\n<tr>\n<td>What have been your initiatives during the last 12 months</td>\n</tr>\n<tr ><td>{{ doc.small_text_12 }}</td></tr>\n</table></br></br></br></br>\n<table border=1 width =\"650\">\n<tr>\n<td>What factors helped hindered achieving KPI for the year 2017?</td>\n</tr>\n<tr ><td>{{ doc.small_text_12 }}</td></tr>\n</table></br></br></br></br>\n<table border=1 width =\"650\">\n<tr>\n<td>What development need to enhance your performance in forthcoming year?</td>\n</tr>\n<tr ><td>{{ doc.small_text_12 }}</td></tr>\n</table>\n<div class=\"page-break\"></div></br>\n<table border=1 width =\"650\">\n<tr>\n<td align=\"center\" style=\"background-color:Gainsboro\" colspan=\"2\"><b>Job Analysis</br>\n(Notes: Present Roles & Responsibilities in descending priority orders. Sales staffs shall mention their regions also)</b></td>\n<tr>\n<td align=\"center\">Appraisee- (complete before the interview) </td>\n<td align=\"center\">Appraiser Remarks \u2013(At the time of interview)</td>\n<tr>", 
+ "idx": 0, 
+ "line_breaks": 0, 
+ "modified": "2018-11-28 17:52:47.118351", 
+ "modified_by": "Administrator", 
+ "module": "Hunter Douglas", 
+ "name": "Performance Appraisal", 
+ "owner": "Administrator", 
+ "print_format_builder": 0, 
+ "print_format_type": "Server", 
+ "show_section_headings": 0, 
+ "standard": "Yes"
+}

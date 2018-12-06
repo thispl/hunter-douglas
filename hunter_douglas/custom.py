@@ -8,10 +8,9 @@ import requests
 import json
 from datetime import datetime,timedelta
 import datetime as dt
-from frappe.utils import today,flt,add_days,date_diff
+from frappe.utils import today,flt,add_days,date_diff,getdate
 from frappe import _
 import xml.etree.ElementTree as ET
-
 
 @frappe.whitelist()	
 def display_announcement(note,announcement):
@@ -78,7 +77,10 @@ def fetch_att():
             attendance_id = frappe.db.get_value("Attendance", {
                 "employee": employee, "attendance_date": date_f})
             if work_time > timedelta(seconds=1) :
-                status = 'Present'
+                if work_time < timedelta(hours=5):
+                    status = 'Half Day'
+                else:    
+                    status = 'Present'
             else:
                 status = 'Absent'     
             if attendance_id:
@@ -86,6 +88,7 @@ def fetch_att():
                     "Attendance", attendance_id)
                 attendance.out_time = out_time
                 attendance.in_time = in_time
+                attendance.status = status
                 attendance.late_in = late_in
                 attendance.early_out = early_out
                 attendance.working_shift = working_shift
@@ -110,57 +113,65 @@ def fetch_att():
                 attendance.save(ignore_permissions=True)
                 attendance.submit()
                 frappe.db.commit()
+                  
+# @frappe.whitelist()
+# def update_leave_approval(doc,status):
+#     lap = frappe.get_doc("Leave Application",doc)    
+#     lap.update({
+#         "status":status
+#     })
+#     lap.save(ignore_permissions=True)
+#     lap.submit()
+#     frappe.db.commit()
 
 @frappe.whitelist()
-def update_att(doc,method):
-    # date = doc.from_time.date()
-    attendance = frappe.get_doc('Attendance',{"employee": doc.employee, "attendance_date": doc.from_time.date()} )
-    attendance.update({
-        "permission_in_time":doc.from_time,
-        "permission_out_time":doc.to_time,
-        "total_permission_hour":doc.total_permission_hour,
-        "reason":doc.description
+def bulk_leave_approve(names,status):
+    if not frappe.has_permission("Leave Application","write"):
+        frappe.throw(_("Not Permitted"),frappe.PermissionError)
+
+    names = json.loads(names)
+    for name in names:
+        lap = frappe.get_doc("Leave Application",name)
+        lap.update({
+        "status":status
     })
-    attendance.db_update()
+    lap.save(ignore_permissions=True)
+    lap.submit()
     frappe.db.commit()
-                    
+
 @frappe.whitelist()
-def on_duty_mark(doc,method):
-    request_days = date_diff(doc.to_date, doc.from_date) + 1
-    for number in range(request_days):
-        attendance_date = add_days(doc.from_date, number)
-        if attendance_date:
-            attendance = frappe.new_doc("Attendance")
-            attendance.update({
-                "employee":doc.employee,
-                "employee_name":doc.employee_name,
-                "status":"Present",
-                "attendance_date":attendance_date,
-                "company":doc.company,
-                "late_in":doc.late_in,
-                "work_time":doc.work_time,
-                "early_out":doc.early_out,
-                "overtime":doc.overtime,
-        })
-        attendance.save(ignore_permissions=True)
-        attendance.submit()
-# @frappe.whitelist()
-# def on_duty_mark(doc,method):
-#     request_days = date_diff(doc.to_date, doc.from_date) + 1
-#     for number in range(request_days):
-#         attendance_date = add_days(doc.from_date, number)
-#         if attendance_date:
-#             attendance = frappe.new_doc("Attendance")
-#             attendance.update({
-#                 "employee":doc.employee,
-#                 "employee_name":doc.employee_name,
-#                 "status":"Present",
-#                 "attendance_date":attendance_date,
-#                 "company":doc.company,
-#                 "late_in":doc.late_in,
-#                 "work_time":doc.work_time,
-#                 "early_out":doc.early_out,
-#                 "overtime":doc.overtime,
-#         })
-#         attendance.save(ignore_permissions=True)
-#         attendance.submit()
+def bulk_travel_approve(names,status):
+    if not frappe.has_permission("Travel Management","write"):
+        frappe.throw(_("Not Permitted"),frappe.PermissionError)
+
+    names = json.loads(names)
+    for name in names:
+        tm = frappe.get_doc("Travel Management",name)
+        tm.update({
+        "status":status
+    })
+    tm.save(ignore_permissions=True)
+    tm.submit()
+    frappe.db.commit()
+
+@frappe.whitelist()
+def bulk_onduty_approve(names,status):
+    if not frappe.has_permission("On Duty Application","write"):
+        frappe.throw(_("Not Permitted"),frappe.PermissionError)
+
+    names = json.loads(names)
+    for name in names:
+        oda = frappe.get_doc("On Duty Application",name)
+        oda.update({
+        "status":status
+    })
+    oda.save(ignore_permissions=True)
+    oda.submit()
+    frappe.db.commit()
+
+def update_website_context(context):
+    context.update(dict(
+        splash_image = '/assets/hunter_douglas/images/hd.svg'
+    ))
+    return context
+

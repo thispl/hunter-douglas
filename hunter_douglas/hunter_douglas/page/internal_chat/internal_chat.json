@@ -1,0 +1,24 @@
+{
+ "content": null, 
+ "creation": "2018-11-27 17:21:52.907216", 
+ "docstatus": 0, 
+ "doctype": "Page", 
+ "icon": "fa fa-users", 
+ "idx": 0, 
+ "modified": "2018-11-27 17:22:00.609336", 
+ "modified_by": "Administrator", 
+ "module": "Hunter Douglas", 
+ "name": "internal-chat", 
+ "owner": "Administrator", 
+ "page_name": "Internal Chat", 
+ "roles": [
+  {
+   "role": "System Manager"
+  }
+ ], 
+ "script": null, 
+ "standard": "Yes", 
+ "style": null, 
+ "system_page": 0, 
+ "title": "Internal Chat"
+}

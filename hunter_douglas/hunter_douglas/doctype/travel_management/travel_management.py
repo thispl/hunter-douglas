@@ -10,7 +10,7 @@ from frappe import _
 from frappe.utils import today,flt,add_days,date_diff,getdate
 
 class LeaveApproverIdentityError(frappe.ValidationError): pass
-class OnDutyApplication(Document):
+class TravelManagement(Document):
 	def on_submit(self):
 		if self.status == "Applied":
 			frappe.throw(_("Only Applications with status 'Approved' and 'Rejected' can be submitted"))
@@ -33,31 +33,31 @@ class OnDutyApplication(Document):
 
 		elif self.docstatus==0 and len(approvers) and self.approver != frappe.session.user:
 			self.status = 'Applied'
-			
+
 		elif self.docstatus==1 and len(approvers) and self.approver != frappe.session.user:
 			frappe.throw(_("Only the selected Approver can submit this Application"),
 				LeaveApproverIdentityError)
 
-
 @frappe.whitelist()
-def on_duty_mark(doc,method):
+def travel_att_mark(doc,method):
     if doc.status == "Approved": 
-        request_days = date_diff(doc.to_date, doc.from_date) +1
-        for number in range(request_days):
-            attendance_date = add_days(doc.from_date, number)
-            skip_attendance = validate_if_attendance_not_applicable(doc.employee,attendance_date)
-            if not skip_attendance:
-                attendance = frappe.new_doc("Attendance")
-                attendance.employee = doc.employee
-                attendance.employee_name = doc.employee_name
-                if doc.half_day and date_diff(getdate(doc.half_day_date), getdate(attendance_date)) == 0:
-                    attendance.status = "Half Day"
-                else:
-                    attendance.status = "On Duty"
-                attendance.attendance_date = attendance_date
-                attendance.company = doc.company
-                attendance.save(ignore_permissions=True)
-                attendance.submit()
+	request_days = date_diff(doc.to_date, doc.from_date) +1
+	for number in range(request_days):
+		attendance_date = add_days(doc.from_date, number)
+		skip_attendance = validate_if_attendance_not_applicable(doc.employee,attendance_date)
+		if not skip_attendance:
+			attendance = frappe.new_doc("Attendance")
+			attendance.employee = doc.employee
+			attendance.employee_name = doc.employee_name
+			attendance.status = "Present"
+			attendance.attendance_date = attendance_date
+			# attendance.company = doc.company
+			attendance.late_in = "00:00:00"
+			attendance.work_time = "00:00:00"
+			attendance.early_out = "00:00:00"
+			attendance.overtime = "00:00:00"
+			attendance.save(ignore_permissions=True)
+			attendance.submit()
 
 def validate_if_attendance_not_applicable(employee, attendance_date):
     # Check if attendance_date is a Holiday
@@ -100,4 +100,3 @@ def is_holiday(employee, date=None):
 
 	if holiday_list:
 		return frappe.get_all('Holiday List', dict(name=holiday_list, holiday_date=date)) and True or False
-

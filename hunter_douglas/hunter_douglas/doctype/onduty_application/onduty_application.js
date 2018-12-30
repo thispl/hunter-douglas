@@ -4,5 +4,6 @@
 frappe.ui.form.on('OnDuty Application', {
 	refresh: function(frm) {
 
-	}
+	},
+	
 });

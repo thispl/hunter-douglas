@@ -16,6 +16,7 @@ def execute(filters=None):
     columns = [_("Shift") + ":Data:100"] 
 
     days = range(25,32) + range(1,25)
+    
     for day in days:
         columns += [(_(day) + ":Int:80") ]
         

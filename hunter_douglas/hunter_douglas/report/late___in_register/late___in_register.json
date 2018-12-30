@@ -7,7 +7,7 @@
  "doctype": "Report", 
  "idx": 0, 
  "is_standard": "Yes", 
- "modified": "2018-12-06 10:32:56.339339", 
+ "modified": "2018-12-30 19:04:45.688470", 
  "modified_by": "Administrator", 
  "module": "Hunter Douglas", 
  "name": "Late - IN Register", 
@@ -17,13 +17,7 @@
  "report_type": "Script Report", 
  "roles": [
   {
-   "role": "System Manager"
-  }, 
-  {
-   "role": "HR User"
-  }, 
-  {
-   "role": "HR Manager"
+   "role": "Administrator"
   }
  ]
 }

@@ -40,14 +40,19 @@ class MovementRegister(Document):
 
 @frappe.whitelist()
 def update_att(doc,method):
-    from_date = datetime.strptime(doc.from_time, '%Y-%m-%d %H:%M:%S').date()
+    if type(doc.from_time) is datetime:
+        from_date = doc.from_time.date()
+    else:
+        from_date = datetime.strptime(doc.from_time, '%Y-%m-%d %H:%M:%S').date()
     if doc.status == "Approved":
-        attendance = frappe.get_doc('Attendance',{"employee": doc.employee, "attendance_date":from_date} )
-        attendance.update({
-            "permission_in_time":doc.from_time,
-            "permission_out_time":doc.to_time,
-            "total_permission_hour":doc.total_permission_hour,
-            "reason":doc.description
-        })
-        attendance.db_update()
-        frappe.db.commit()
+        if frappe.get_value('Attendance',{"employee": doc.employee, "attendance_date":from_date}):
+            attendance = frappe.get_value('Attendance',{"employee": doc.employee, "attendance_date":from_date})
+            if attendance:
+                attendance.update({
+                    "permission_in_time":doc.from_time,
+                    "permission_out_time":doc.to_time,
+                    "total_permission_hour":doc.total_permission_hour,
+                    "reason":doc.description
+                })
+                attendance.db_update()
+                frappe.db.commit()

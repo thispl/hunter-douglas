@@ -16,7 +16,7 @@ app_license = "MIT"
 
 # include js, css files in header of desk.html
 # app_include_css = "/assets/hunter_douglas/css/hunter_douglas.css"
-# app_include_js = "/assets/hunter_douglas/js/hunter_douglas.js"
+app_include_js = "/assets/hunter_douglas/js/mute_learn.js"
 
 # include js, css files in header of web template
 # web_include_css = "/assets/hunter_douglas/css/hunter_douglas.css"
@@ -84,19 +84,19 @@ doc_events = {
     {
         "on_submit": "hunter_douglas.hunter_douglas.doctype.movement_register.movement_register.update_att",
     },
-	"On Duty Application":
+    "On Duty Application":
     {
         "on_submit": "hunter_douglas.hunter_douglas.doctype.on_duty_application.on_duty_application.on_duty_mark",
     },
-	# "Travel Management":
-    # {
-    #     "on_submit": "hunter_douglas.hunter_douglas.doctype.travel_management.travel_management.travel_att_mark",
+    "Travel Management":
+    {
+        "on_submit": "hunter_douglas.hunter_douglas.doctype.travel_management.travel_management.travel_att_mark",
+    }
+    # "*": {
+    # 	"on_update": "method",
+    # 	"on_cancel": "method",
+    # 	"on_trash": "method"
     # }
-	# "*": {
-	# 	"on_update": "method",
-	# 	"on_cancel": "method",
-	# 	"on_trash": "method"
-	# }
 }
 
 # Scheduled Tasks
@@ -106,12 +106,20 @@ scheduler_events = {
 # 	"all": [
 # 		"hunter_douglas.tasks.all"
 # 	],
-	"daily": [
-		"hunter_douglas.custom.fetch_att"
-	],
-# 	"hourly": [
-# 		"hunter_douglas.tasks.hourly"
-# 	],
+    "daily": [
+        "hunter_douglas.custom.auto_present"
+    ],
+    "cron": {
+        # "*/30 * * * *": [
+        #     "hunter_douglas.custom.fetch_att"
+        # ],
+        "20 9 * * *":[
+            "hunter_douglas.custom.fetch_att"
+        ],
+        "00 19 * * *":[
+            "hunter_douglas.custom.fetch_att"
+        ]
+    }
 # 	"weekly": [
 # 		"hunter_douglas.tasks.weekly"
 # 	]

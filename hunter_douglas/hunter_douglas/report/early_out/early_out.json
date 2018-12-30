@@ -1,21 +1,20 @@
 {
  "add_total_row": 0, 
  "apply_user_permissions": 1, 
- "creation": "2018-12-06 11:01:31.776741", 
+ "creation": "2018-12-29 20:14:27.583257", 
  "disabled": 0, 
  "docstatus": 0, 
  "doctype": "Report", 
  "idx": 0, 
  "is_standard": "Yes", 
- "json": "{\"add_total_row\": 0, \"sort_by\": \"Attendance.modified\", \"add_totals_row\": 0, \"sort_order\": \"desc\", \"sort_by_next\": null, \"filters\": [[\"Attendance\", \"overtime\", \">\", \"00:00:0\"], [\"Attendance\", \"attendance_date\", \">\", \"2018-11-30\"]], \"sort_order_next\": \"desc\", \"columns\": [[\"name\", \"Attendance\"], [\"employee\", \"Attendance\"], [\"employee_name\", \"Attendance\"], [\"attendance_date\", \"Attendance\"], [\"in_time\", \"Attendance\"], [\"out_time\", \"Attendance\"], [\"early_out\", \"Attendance\"]]}", 
- "modified": "2018-12-06 11:01:31.776741", 
+ "modified": "2018-12-29 20:14:27.583257", 
  "modified_by": "Administrator", 
  "module": "Hunter Douglas", 
- "name": "Early-OUT", 
+ "name": "Early Out", 
  "owner": "Administrator", 
  "ref_doctype": "Attendance", 
- "report_name": "Early-OUT", 
- "report_type": "Report Builder", 
+ "report_name": "Early Out", 
+ "report_type": "Script Report", 
  "roles": [
   {
    "role": "System Manager"
@@ -25,6 +24,9 @@
   }, 
   {
    "role": "HR Manager"
+  }, 
+  {
+   "role": "Employee"
   }
  ]
 }

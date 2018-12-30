@@ -1,0 +1,203 @@
+<html>
+
+<body>
+    <h3 align="center">TRAVEL EXPENSES STATEMENT</h3></BR></BR>
+    <table border=1 width="650">
+        <tr>
+            <td width="50%">NAME: {{ doc.employee_name }}</td>
+            <td width="50%">LOCATION: {{ doc.location }}</td>
+        </tr>
+        <tr>
+            <td>EMP.CODE: {{ doc.employee }}</td>
+            <td>COST CENTER: {{ doc.cost_center1 }} </td>
+        </tr>
+        <tr>
+            <td>DESIGNATION:{{ doc.designation }}</td>
+            <td>DEPARTMENT:{{ doc.department }}</td>
+        </tr>
+        <tr>
+            <td>GRADE: {{ doc.grade }}</td>
+            {% if doc.purpose_of_travel %}
+            <td>Purpose of Travel: {{ doc.purpose_of_travel }}</td>
+            {% else %}
+            <td></td>
+            {% endif %}
+        </tr>
+    </table></br></br>
+    {% set total = {} %}
+    {% set tot = 0 %}
+    {% set travel_finished = [] %}
+    {% set DA_finished = [] %}
+    {% set HOTMEAL = [] %}
+    {% set others_finished = [] %}
+    {% set conveyance_finished = [] %}
+    {% set count = doc.expenses|length %}
+    {% set i = 0 %}
+    {% for i in range(count) %}
+    {%if travel_finished|length == 0 %}
+    {% if doc.expenses[i].expense_type == "TRAVEL" %}
+    <h5>1.TRAVEL: AIR/TRAIN/BUS</H5>
+    <TABLE BORDER="1" WIDTH="650">
+        <TR HEIGHT="20">
+            <TD ALIGN="CENTER" COLSPAN=2>DATE</TD>
+            <TD ALIGN="CENTER" COLSPAN=2>PLACE</TD>
+            <TD ALIGN="CENTER" ROWSPAN=2>CLASS OF <BR>TRAVEL</TD>
+            <TD ALIGN="CENTER" COLSPAN=2>AMOUNT PAID BY</TD>
+            <TD ALIGN="CENTER" ROWSPAN=2>AMOUNT<br>RS.</TD>
+        </TR>
+        <TR HEIGHT="20">
+            <TD ALIGN="CENTER">FROM DATE</TD>
+            <TD ALIGN="CENTER">TO DATE</TD>
+            <TD ALIGN="CENTER">FROM</TD>
+            <TD ALIGN="CENTER">TO</TD>
+            <TD ALIGN="CENTER">SELF<BR>RS.</TD>
+            <TD ALIGN="CENTER">COMPANY<BR>RS.</TD>
+        </TR>
+        {% set j = i %}
+        {% for j in range(count) %}
+        {% if doc.expenses[j].expense_type == "TRAVEL" %}
+        <TR HEIGHT="20">
+            <TD ALIGN="CENTER">{{ frappe.utils.formatdate(doc.expenses[j].from_date) }}</TD>
+            <TD ALIGN="CENTER">{{ frappe.utils.formatdate(doc.expenses[j].to_date) }}</TD>
+            <TD ALIGN="CENTER">{{ doc.expenses[j].from_place }}</TD>
+            <TD ALIGN="CENTER">{{ doc.expenses[j].to_place }}</TD>
+            {%if doc.expenses[j].class_of_travel %}
+            <TD ALIGN="Right">{{ doc.expenses[j].class_of_travel }}&nbsp&nbsp &nbsp</TD>
+            {% else %}
+            <td></td>
+            {% endif %}
+            {% if doc.expenses[j].booking_type == "Self" %}
+            <td align="center">{{ doc.expenses[j].claim_amount }}</td>
+            <td></td>
+            {% else %}
+            <td></td>
+            <td align="center">{{ doc.expenses[j].sanctioned_amount }}</td>
+            {% endif %}
+            <TD ALIGN="right">{{ doc.expenses[j].sanctioned_amount }} &nbsp&nbsp&nbsp&nbsp&nbsp</TD>
+        </TR>
+        {% set a = travel_finished.append(doc.expenses[j].sanctioned_amount) %}
+        {% endif %}
+        {% endfor %}
+        <TR HEIGHT="20">
+            <TD ALIGN="right" colspan="7">Sub-Total</TD>
+            <TD ALIGN="center" colspan="8">
+                {{ travel_finished|sum() }}
+            </TD>
+        </TR>
+    </table>
+
+    {% endif %}
+    {% endif %}
+    {%if HOTMEAL|length == 0 %}
+    {% if doc.expenses[i].expense_type == "HOTEL" or doc.expenses[i].expense_type == "MEALS"%}
+    {# {% set a = HOTMEAL.append("10") %} #}
+    <br><br>
+    <h5>2. HOTEL & MEALS(FOR STAY EXP):</H5>
+    <table border=1 width="650">
+        <tr>
+            <td align="center">FROM DATE</td>
+            <td align="center">TO DATE</td>
+            <td align="center">DESCRIPTION</td>
+            <td align="center">AMOUNT<BR>Rs.</td>
+        </tr>
+        {% set j = i %}
+        {% for j in range(count) %}
+        {% if doc.expenses[j].expense_type == "HOTEL" or doc.expenses[j].expense_type == "MEALS" %}
+        <tr>
+            <td align="center">{{ frappe.utils.formatdate(doc.expenses[j].from_date) }}</td>
+            <td align="center">{{ frappe.utils.formatdate(doc.expenses[j].to_date) }}</td>
+            {% if doc.expenses[j].expense_type == "MEALS" %}
+            <td>{{ doc.expenses[j].description2 }}</td>
+            {% elif doc.expenses[j].expense_type == "HOTEL" %}
+            <td>{{ doc.expenses[j].description1 }}</td>
+            {% endif %}
+            <td align="right">{{ doc.expenses[j].sanctioned_amount }} &nbsp&nbsp&nbsp&nbsp&nbsp</td>
+        </tr>
+        {% set a = HOTMEAL.append(doc.expenses[j].sanctioned_amount) %}
+        {% endif %}
+        {% endfor %}
+        <TR HEIGHT="20">
+            <TD ALIGN="right" colspan="7">Sub-Total</TD>
+            <TD ALIGN="center" colspan="8">
+                {{ HOTMEAL|sum() }}
+            </TD>
+        </TR>
+    </table><br><br>
+    {% endif %}
+    {% endif %}
+    {%if DA_finished|length == 0 %}
+    {% if doc.expenses[i].expense_type == "DAILY ALLOWANCES" %}
+    {% set a = DA_finished.append("10") %}
+    <br><br>
+    <h5>3. DAILY ALLOWANCES:</H5>
+    <table border=1 width="650">
+        <tr>
+            <td align="center">No.of<br>DAYS</td>
+            <td align="center">DAILY ALLOWANCE<br>Rs.</td>
+            <td align="center">AMOUNT<BR>Rs.</td>
+        </tr>
+        {% set j = i %}
+        {% for j in range(count) %}
+        {% if doc.expenses[j].expense_type == "DAILY ALLOWANCES" %}
+        <tr>
+            <td align="center">{{ doc.expenses[j].no_of_days }}</td>
+            <td align="center">{{ 100 }}</td>
+            <td align="right">{{ doc.expenses[j].claim_amount }} &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp</td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+    </table><br>
+    {% endif %}
+    {% endif %}
+    {%if conveyance_finished|length == 0 %}
+    {% if doc.expenses[i].expense_type == "CONVEYANCE" %}
+    {% set a = conveyance_finished.append("1") %}
+    <h5>4. CONVEYANCE EXPENSES:</H5>
+    <TABLE BORDER="1" WIDTH="650">
+        <TR>
+            <td align="center">DATE</td>
+            <td align="center">PURPOSE & NAME</TD>
+            <TD align="center" colspan=2>AMOUNT<br>Rs.</TD>
+        </tr>
+        {% set j = i %}
+        {% for j in range(count) %}
+        {% if doc.expenses[j].expense_type == "CONVEYANCE" %}
+        <TR>
+            <td align="center">{{ frappe.utils.formatdate(doc.expenses[j].expense_date) }}</td>
+            <td align="center">{{ doc.expenses[j].purpose_name }}</TD>
+            <TD align="right">{{ doc.expenses[j].sanctioned_amount }} &nbsp&nbsp&nbsp&nbsp&nbsp</TD>
+        </tr>
+        {% endif %}
+        {% endfor %}
+    </table><br><br>
+    {% endif %}
+    {% endif %}
+    {%if others_finished|length == 0 %}
+    {% if doc.expenses[i].expense_type == "OTHERS" %}
+    {% set a = others_finished.append("1") %}
+    <h5>5. OTHER EXPENSES:</H5>
+    <TABLE BORDER="1" WIDTH="650">
+        <TR>
+            <td align="center">DATE</td>
+            <td align="center">PURPOSE & NAME</TD>
+            <TD align="center" colspan=2>AMOUNT<br>Rs.</TD>
+        </tr>
+        {% set j = i %}
+        {% for j in range(count) %}
+        {% if doc.expenses[j].expense_type == "OTHERS" %}
+        <TR>
+            <td align="center">{{ frappe.utils.formatdate(doc.expenses[j].expense_date) }}</td>
+            <td align="center">{{ doc.expenses[j].purpose_name1 }}</TD>
+            <TD align="right">{{ doc.expenses[j].sanctioned_amount }} &nbsp&nbsp&nbsp&nbsp&nbsp</TD>
+        </tr>
+        {% endif %}
+        {% endfor %}
+    </table>
+    {% endif %}
+    {% endif %}
+    {% endfor %}<br><br><br><br>
+    <h4 align="right"> Grand Total : {{ doc.total_sanctioned_amount }}</h4>
+    <h5 align="right">Sub Total( 1+2+3+4+5 )</h5>
+</body>
+
+</html>

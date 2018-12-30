@@ -1,0 +1,33 @@
+{
+ "add_total_row": 0, 
+ "apply_user_permissions": 1, 
+ "creation": "2018-12-10 22:36:39.459214", 
+ "disabled": 1, 
+ "docstatus": 0, 
+ "doctype": "Report", 
+ "idx": 0, 
+ "is_standard": "Yes", 
+ "modified": "2018-12-29 14:37:01.065220", 
+ "modified_by": "Administrator", 
+ "module": "Hunter Douglas", 
+ "name": "Attendance Summary", 
+ "owner": "Administrator", 
+ "query": "SELECT \n       `tabAttendance`.`employee` AS \"Employee ID:Data:80\",\n       `tabAttendance`.`employee_name` AS \"Name:Data:160\",\n       `tabEmployee`.`working_shift`AS \"Shift::140\",\n\t`tabAttendance`.`status` AS \"Status:Data:100\",\n\tIFNULL(`tabAttendance`.`in_time`, \"-\") AS \"In Time::140\",\n        IFNULL(`tabAttendance`.`out_time`, \"-\") AS \"Out Time::140\",\n        IFNULL(SEC_TO_TIME(FLOOR(TIME_TO_SEC(`tabAttendance`.`work_time`))), \"-\") AS \"Working Hours:Time:100\"\nFROM \n       `tabAttendance` \nLEFT JOIN `tabEmployee` on `tabAttendance`.employee = `tabEmployee`.employee\nWHERE \n       `tabAttendance`.attendance_date between %(from_date)s and %(to_date)s  \nAND\n       `tabEmployee`.user_id = %(user)s\nGROUP BY\n        `tabAttendance`.`attendance_date`", 
+ "ref_doctype": "Attendance", 
+ "report_name": "Attendance Summary", 
+ "report_type": "Query Report", 
+ "roles": [
+  {
+   "role": "System Manager"
+  }, 
+  {
+   "role": "HR User"
+  }, 
+  {
+   "role": "HR Manager"
+  }, 
+  {
+   "role": "Employee"
+  }
+ ]
+}

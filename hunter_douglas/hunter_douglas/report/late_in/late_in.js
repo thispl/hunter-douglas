@@ -31,7 +31,7 @@ frappe.query_reports["Late In"] = {
 			"fieldname":"business_unit",
 			"label": __("Business Unit"),
 			"fieldtype": "Select",
-			"options":"G&A\nAP\nWCP\nTMI"
+			"options":" \nG&A\nAP\nWCP\nTMI"
 		},
 		{
 			"fieldname":"location",

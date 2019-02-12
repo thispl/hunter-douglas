@@ -80,18 +80,18 @@ update_website_context = "hunter_douglas.custom.update_website_context"
 # Hook on document methods and events
 
 doc_events = {
-    "Movement Register":
-    {
-        "on_submit": "hunter_douglas.hunter_douglas.doctype.movement_register.movement_register.update_att",
-    },
-    "On Duty Application":
-    {
-        "on_submit": "hunter_douglas.hunter_douglas.doctype.on_duty_application.on_duty_application.on_duty_mark",
-    },
-    "Travel Management":
-    {
-        "on_submit": "hunter_douglas.hunter_douglas.doctype.travel_management.travel_management.travel_att_mark",
-    }
+    # "Movement Register":
+    # {
+    #     "on_submit": "hunter_douglas.hunter_douglas.doctype.movement_register.movement_register.update_att",
+    # },
+    # "On Duty Application":
+    # {
+    #     "on_submit": "hunter_douglas.hunter_douglas.doctype.on_duty_application.on_duty_application.on_duty_mark",
+    # },
+    # "Travel Management":
+    # {
+    #     "on_submit": "hunter_douglas.hunter_douglas.doctype.travel_management.travel_management.travel_att_mark",
+    # }
     # "*": {
     # 	"on_update": "method",
     # 	"on_cancel": "method",
@@ -106,18 +106,22 @@ scheduler_events = {
 # 	"all": [
 # 		"hunter_douglas.tasks.all"
 # 	],
-    "daily": [
-        "hunter_douglas.custom.auto_present"
-    ],
+    # "hourly": [
+    #     "hunter_douglas.custom.fetch_att"
+    # ],
     "cron": {
-        # "*/30 * * * *": [
-        #     "hunter_douglas.custom.fetch_att"
-        # ],
-        "20 9 * * *":[
+        "0 7-23/1 * * *":[
             "hunter_douglas.custom.fetch_att"
+        ],
+        "*/15 9-11 * * *":[
+            "hunter_douglas.custom.fetch_att"
+        ],
+        "00 10 * * *":[
+            "hunter_douglas.custom.in_punch_alert"
         ],
         "00 19 * * *":[
             "hunter_douglas.custom.fetch_att"
+            "hunter_douglas.custom.out_punch_alert"
         ]
     }
 # 	"weekly": [

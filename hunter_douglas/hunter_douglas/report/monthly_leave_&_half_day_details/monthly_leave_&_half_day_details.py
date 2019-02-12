@@ -18,7 +18,11 @@ def execute(filters=None):
     filters["month"] = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov",
         "Dec"].index(filters.month) + 1  
     columns = [_("User ID") + ":Data:100",_("Name") + ":Data:150",_("Designation") + ":Data:150",_("Full Day Absents") + ":Data:200",_("Half Day Absents") + ":Data:150",_("Total Absent Days") + ":Data:100"] 
-    tdm = monthrange(cint(filters.year), filters.month - 1)[1]
+    month = filters.month - 1
+    if month == 0:
+        month = 12
+        filters.year = cint(filters.year) - 1
+    tdm = monthrange(cint(filters.year), month)[1]
     days = range(25,tdm+1) + range(1,25)
     employees = get_employees(filters)
     for emp in get_employees(filters):
@@ -27,7 +31,7 @@ def execute(filters=None):
         row = [emp.employee,emp.employee_name,emp.designation]    
         for day in days:   
             if day in range(25,32):
-                day_f = str(filters.year) +'-'+str(filters.month - 1)+'-'+str(day)
+                day_f = str(filters.year) +'-'+str(month)+'-'+str(day)
             else:
                 day_f = str(filters.year) +'-'+str(filters.month)+'-'+str(day)  
             attend = frappe.db.sql(

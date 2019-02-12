@@ -12,6 +12,8 @@ from frappe.utils import today,flt,add_days,date_diff,getdate,cint,formatdate, g
 
 class LeaveApproverIdentityError(frappe.ValidationError): pass
 class OverlapError(frappe.ValidationError): pass
+class InvalidLeaveApproverError(frappe.ValidationError): pass
+class AttendanceAlreadyMarkedError(frappe.ValidationError): pass    
 
 class OnDutyApplication(Document):
     def on_submit(self):
@@ -23,24 +25,25 @@ class OnDutyApplication(Document):
         self.validate_od_overlap()	
 
     def validate_approver(self):
-        employee = frappe.get_doc("Employee", self.employee)
-        approvers = [l.leave_approver for l in employee.get("leave_approvers")]
+        if not frappe.session.user == 'hr.hdi@hunterdouglas.asia':
+            employee = frappe.get_doc("Employee", self.employee)
+            approvers = [l.leave_approver for l in employee.get("leave_approvers")]
 
-        if len(approvers) and self.approver not in approvers:
-            frappe.throw(_("Approver must be one of {0}")
-                .format(comma_or(approvers)), InvalidApproverError)
+            if len(approvers) and self.approver not in approvers:
+                frappe.throw(_("Approver must be one of {0}")
+                    .format(comma_or(approvers)), InvalidApproverError)
 
-        elif self.approver and not frappe.db.sql("""select name from `tabHas Role`
-            where parent=%s and role='Leave Approver'""", self.approver):
-            frappe.throw(_("{0} ({1}) must have role 'Approver'")\
-                .format(get_fullname(self.approver), self.approver), InvalidApproverError)
+            elif self.approver and not frappe.db.sql("""select name from `tabHas Role`
+                where parent=%s and role='Leave Approver'""", self.approver):
+                frappe.throw(_("{0} ({1}) must have role 'Approver'")\
+                    .format(get_fullname(self.approver), self.approver), InvalidApproverError)
 
-        elif self.docstatus==0 and len(approvers) and self.approver != frappe.session.user:
-            self.status = 'Applied'
-            
-        elif self.docstatus==1 and len(approvers) and self.approver != frappe.session.user:
-            frappe.throw(_("Only the selected Approver can submit this Application"),
-                LeaveApproverIdentityError)
+            elif self.docstatus==0 and len(approvers) and self.approver != frappe.session.user:
+                self.status = 'Applied'
+                
+            elif self.docstatus==1 and len(approvers) and self.approver != frappe.session.user:
+                frappe.throw(_("Only the selected Approver can submit this Application"),
+                    LeaveApproverIdentityError)
     
     def validate_od_overlap(self):
         if not self.name:
@@ -77,12 +80,12 @@ class OnDutyApplication(Document):
             + """ <br><b><a href="#Form/On Duty Application/{0}">{0}</a></b>""".format(d["name"])
         frappe.throw(msg, OverlapError)
 
-    def on_cancel(self):
-        attendance_list = frappe.get_list("Attendance", {'employee': self.employee, 'on_duty_application': self.name})
-        if attendance_list:
-            for attendance in attendance_list:
-                attendance_obj = frappe.get_doc("Attendance", attendance['name'])
-                attendance_obj.cancel()
+    # def on_cancel(self):
+    #     attendance_list = frappe.get_list("Attendance", {'employee': self.employee, 'on_duty_application': self.name})
+    #     if attendance_list:
+    #         for attendance in attendance_list:
+    #             attendance_obj = frappe.get_doc("Attendance", attendance['name'])
+    #             attendance_obj.cancel()
 
 
 @frappe.whitelist()
@@ -182,3 +185,12 @@ def get_number_of_leave_days(employee, from_date, to_date,from_date_session=None
         if from_date_session == "Second Half" and to_date_session == "First Half":
             number_of_days = flt(date_dif) - 1
     return number_of_days
+
+
+@frappe.whitelist()
+def check_attendance(employee, from_date, to_date):
+    if employee:
+        attendance = frappe.db.sql("""select status,attendance_date from `tabAttendance`
+                    where employee = %s and attendance_date between %s and %s
+                    and docstatus = 1""", (employee, from_date, to_date), as_dict=True)
+        return attendance

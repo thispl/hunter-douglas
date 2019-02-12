@@ -4,8 +4,12 @@
 from __future__ import unicode_literals
 import frappe
 from frappe import _
-from datetime import datetime
 import time
+import math
+from datetime import datetime,timedelta
+from calendar import monthrange
+from frappe.utils import getdate, cint, add_months, date_diff, add_days, nowdate, \
+    get_datetime_str, cstr, get_datetime, time_diff, time_diff_in_seconds
 
 def execute(filters=None):
     if not filters:
@@ -20,8 +24,13 @@ def execute(filters=None):
         "Dec"].index(filters.month) + 1
     
     columns = [_("User ID") + ":Data:100",_("Name") + ":Data:100",_("Designation") + ":Data:100",_("Details") + ":Data:100"] 
-
-    days = range(25,32) + range(1,25)
+    month = filters.month - 1
+    year = filters.year
+    if month == 0:
+        month = 12
+        year = cint(filters.year) - 1
+    tdm = monthrange(cint(filters.year), month)[1]
+    days = range(25,tdm+1) + range(1,25)
     for day in days:
         columns += [(_(day) + "::80") ]
     attendance = get_attendance(filters)
@@ -34,16 +43,18 @@ def execute(filters=None):
         work_time_row = ["","","","Work Time"]
         for day in days:
             if day in range(25,32):
-                day_f = str(filters.year) +'-'+str(filters.month - 1)+'-'+str(day)
+                day_f = str(year) +'-'+str(month)+'-'+str(day)
             else:
                 day_f = str(filters.year) +'-'+str(filters.month)+'-'+str(day) 
+            day_f = datetime.strptime(day_f, "%Y-%m-%d").date() 
             # attend = frappe.get_list("Attendance",fields=['in_time','out_time','late_in','early_out','work_time','working_shift','overtime'],filters={'status':'Present','attendance_date':day_f})    
+            frappe.errprint(day_f)
             attend = frappe.db.sql(
                     """select att.late_in,att.working_shift,att.in_time,att.early_out,att.overtime,att.work_time from `tabAttendance` att where att.status='Present' and 
                         att.attendance_date='%s'""" % (day_f) ,as_dict=1)    
             for at in attend:
-                if at['working_shift']:
-                    att_shift = at['working_shift']
+                if at.working_shift:
+                    att_shift = at.working_shift
                 else:
                     att_shift = ""
                 if at.in_time:

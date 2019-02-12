@@ -8,8 +8,14 @@ from frappe.model.document import Document
 from datetime import datetime,timedelta
 from frappe import _
 from frappe.utils import today,flt,add_days,date_diff,getdate
+from frappe.utils import today,flt,add_days,date_diff,getdate,cint,formatdate, getdate, get_link_to_form, \
+    comma_or, get_fullname
 
 class LeaveApproverIdentityError(frappe.ValidationError): pass
+class OverlapError(frappe.ValidationError): pass
+class InvalidLeaveApproverError(frappe.ValidationError): pass
+class AttendanceAlreadyMarkedError(frappe.ValidationError): pass
+
 class MovementRegister(Document):
     def on_submit(self):
         if self.status == "Applied":
@@ -38,21 +44,21 @@ class MovementRegister(Document):
             frappe.throw(_("Only the selected Approver can submit this Application"),
                 LeaveApproverIdentityError)
 
-@frappe.whitelist()
-def update_att(doc,method):
-    if type(doc.from_time) is datetime:
-        from_date = doc.from_time.date()
-    else:
-        from_date = datetime.strptime(doc.from_time, '%Y-%m-%d %H:%M:%S').date()
-    if doc.status == "Approved":
-        if frappe.get_value('Attendance',{"employee": doc.employee, "attendance_date":from_date}):
-            attendance = frappe.get_value('Attendance',{"employee": doc.employee, "attendance_date":from_date})
-            if attendance:
-                attendance.update({
-                    "permission_in_time":doc.from_time,
-                    "permission_out_time":doc.to_time,
-                    "total_permission_hour":doc.total_permission_hour,
-                    "reason":doc.description
-                })
-                attendance.db_update()
-                frappe.db.commit()
+# @frappe.whitelist()
+# def update_att(doc,method):
+#     if type(doc.from_time) is datetime:
+#         from_date = doc.from_time.date()
+#     else:
+#         from_date = datetime.strptime(doc.from_time, '%Y-%m-%d %H:%M:%S').date()
+#     if doc.status == "Approved":
+#         if frappe.get_value('Attendance',{"employee": doc.employee, "attendance_date":from_date}):
+#             attendance = frappe.get_value('Attendance',{"employee": doc.employee, "attendance_date":from_date})
+#             if attendance:
+#                 attendance.update({
+#                     "permission_in_time":doc.from_time,
+#                     "permission_out_time":doc.to_time,
+#                     "total_permission_hour":doc.total_permission_hour,
+#                     "reason":doc.description
+#                 })
+#                 attendance.db_update()
+#                 frappe.db.commit()

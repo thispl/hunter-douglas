@@ -1,4 +1,9 @@
 frappe.listview_settings['Movement Register'] = {
+	add_fields: ["status"],
+	get_indicator: function(doc) {
+		return [__(doc.status), frappe.utils.guess_colour(doc.status),
+			"status,=," + doc.status];
+	},
     onload:function(listview){
     },
     refresh:function(me){
@@ -19,7 +24,7 @@ frappe.listview_settings['Movement Register'] = {
 						name: r.message[0].name
 					},
 					callback: function(r){
-						emp = r.message.employee;
+						emp = r.message.employee_number;
 						if (!frappe.route_options) {
 							frappe.route_options = {
 								"employee": ["=", emp],

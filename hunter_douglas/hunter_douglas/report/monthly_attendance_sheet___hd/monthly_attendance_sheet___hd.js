@@ -16,22 +16,29 @@ frappe.query_reports["Monthly Attendance Sheet - HD"] = {
 			"fieldname":"year",
 			"label": __("Year"),
 			"fieldtype": "Select",
+			// "options": "2018\n2019",
+			// "default":"2018",
 			"reqd": 1
 		},
 		{
 			"fieldname":"employee",
 			"label": __("Employee"),
 			"fieldtype": "Link",
-			"options": "Employee"
+			"options":"Employee"
 		},
 		{
-			"fieldname":"company",
-			"label": __("Company"),
+			"fieldname":"location",
+			"label": __("Location"),
 			"fieldtype": "Link",
-			"options": "Company",
-			"default": frappe.defaults.get_user_default("Company"),
-			"reqd": 1
-		}
+			"options":"Location"
+		},
+		{
+			"fieldname":"business_unit",
+			"label": __("Business Unit"),
+			"fieldtype": "Select",
+			"options":"G&A\nAP\nWCP\nTMI"
+		},
+		
 	],
 
 	"onload": function() {

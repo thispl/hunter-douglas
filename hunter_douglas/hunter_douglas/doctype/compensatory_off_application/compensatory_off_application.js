@@ -16,27 +16,52 @@ frappe.ui.form.on('Compensatory Off Application', {
                     frm.set_value("approver", LA[0].leave_approver)
                 }
             })
-            frappe.call({
-                method: 'hunter_douglas.custom.get_coff',
-                args: {
-                    "employee": frm.doc.employee
-                },
-                callback: function (r) {
-                    frm.set_value("current_balance", r.message)
-                }
-            })
+            frm.trigger("balance_check")
         }
-
-
+    },
+    balance_check: function(frm){
+        frappe.call({
+            method: 'hunter_douglas.custom.get_coff',
+            args: {
+                "employee": frm.doc.employee
+            },
+            callback: function (r) {
+                if(r.message != "No Data"){
+                    frm.set_value("current_balance", r.message)
+                } else {
+                    frappe.throw("You don't have enough Comp Off Balance");
+                    validated = false;
+                }
+            }
+        })
     },
     from_date: function (frm) {
+        if(frm.doc.to_date){
         frm.trigger("calculate_total_days");
+        }
+        if(frm.doc.to_date  && frm.doc.to_date){
+            if(frm.doc.from_date > frm.doc.to_date){
+                frm.set_value("from_date","")
+                frappe.throw("From Date Must be Lesser than or Equal to To Date")
+            }
+        }
     },
     to_date: function (frm) {
-        frm.trigger("calculate_total_days");
+        // if(frm.doc.to_date){
+        // frm.trigger("calculate_total_days");
+        // }
+        if(frm.doc.from_date && frm.doc.to_date){
+            if(frm.doc.from_date > frm.doc.to_date){
+                frm.set_value("to_date","")
+                frappe.throw("To Date Must be Greater than or Equal to From Date")
+            }
+        }
     },
     to_date_session: function (frm) {
         frm.trigger("calculate_total_days")
+        if (frm.doc.from_date == frm.doc.to_date) {
+            frm.set_value("from_date_session", frm.doc.to_date_session)
+        }
     },
     from_date_session: function (frm) {
         frm.trigger("calculate_total_days")
@@ -47,6 +72,7 @@ frappe.ui.form.on('Compensatory Off Application', {
     calculate_total_days: function (frm) {
         if (frm.doc.from_date && frm.doc.to_date && frm.doc.employee) {
             var date_dif = frappe.datetime.get_diff(frm.doc.to_date, frm.doc.from_date) + 1
+            console.log(date_dif)
             return frappe.call({
                 "method": 'hunter_douglas.hunter_douglas.doctype.on_duty_application.on_duty_application.get_number_of_leave_days',
                 args: {
@@ -60,13 +86,15 @@ frappe.ui.form.on('Compensatory Off Application', {
                 callback: function (r) {
                     if (r.message) {
                         frm.set_value('total_number_of_days', r.message);
-                        frm.trigger("get_leave_balance");
+                        // frm.trigger("get_leave_balance");
                     }
                 }
             });
         }
     },
+
     validate: function(frm){
+        frm.trigger("calculate_total_days");
         frappe.call({
             "method": 'hunter_douglas.hunter_douglas.doctype.on_duty_application.on_duty_application.check_attendance',
             args: {
@@ -98,28 +126,56 @@ frappe.ui.form.on('Compensatory Off Application', {
                 }
             }
         });
+        frm.trigger("balance_check")
+    },
+    onload: function(frm){
+        if(frm.doc.employee){
+        frappe.call({
+            "method": "hunter_douglas.hunter_douglas.doctype.compensatory_off_application.compensatory_off_application.remove_child",
+            "args":{
+                "req_bal": frm.doc.required_balance,
+                "employee": frm.doc.employee
+            },
+            callback: function(r){
+                if(r.message){
+
+                }
+            }
+        })
     }
-    // calculate_total_days: function(frm) {
-    //     if(frm.doc.from_date && frm.doc.to_date && frm.doc.employee) {
-    //         var date_dif = frappe.datetime.get_diff(frm.doc.to_date, frm.doc.from_date) + 1
-    //         return frappe.call({
-    //             "method": 'hunter_douglas.hunter_douglas.doctype.compensatory_off_application.compensatory_off_application.get_number_of_required_hours',
-    //             args: {
-    //                 "employee": frm.doc.employee,
-    //                 "from_date": frm.doc.from_date,
-    //                 "from_date_session":frm.doc.from_date_session,
-    //                 "to_date": frm.doc.to_date,
-    //                 "to_date_session":frm.doc.to_date_session,
-    //                 "date_dif": date_dif
-    //             },
-    //             callback: function(r) {
-    //                 if (r.message) {
-    // 					// console.log(r.message * 8)
-    //                     frm.set_value('required_balance', r.message);
-    //                     // frm.trigger("get_leave_balance");
-    //                 }
-    //             }
-    //         });
-    //     }
-    // }
+        
+        
+    },
+    calculate_total_days: function(frm) {
+        if(frm.doc.from_date && frm.doc.to_date && frm.doc.employee) {
+            var date_dif = frappe.datetime.get_diff(frm.doc.to_date, frm.doc.from_date) + 1
+            return frappe.call({
+                "method": 'hunter_douglas.hunter_douglas.doctype.compensatory_off_application.compensatory_off_application.get_number_of_required_hours',
+                args: {
+                    "employee": frm.doc.employee,
+                    "from_date": frm.doc.from_date,
+                    "from_date_session":frm.doc.from_date_session,
+                    "to_date": frm.doc.to_date,
+                    "to_date_session":frm.doc.to_date_session,
+                    "date_dif": date_dif,
+                    "current_balance":frm.doc.current_balance
+                },
+                callback: function(r) {
+                    if (r.message) {
+                        if(r.message == 'less'){
+                            frappe.msgprint("Balance is Less for the Applied Days") 
+                            frm.set_value("to_date","")
+                            frm.set_value("required_balance","")
+                        }
+                        else{
+                            frm.set_value('required_balance', r.message);
+                        }
+    					// console.log(r.message * 8)
+                       
+                        // frm.trigger("get_leave_balance");
+                    }
+                }
+            });
+        }
+    }
 });

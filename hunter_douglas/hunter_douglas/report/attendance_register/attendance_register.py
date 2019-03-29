@@ -47,10 +47,7 @@ def execute(filters=None):
         p = ab = tr = od = coff = wo = ph = l = 0.0
         row = [emp.employee,emp.employee_name,emp.designation,"Shift"]
         working_shift = frappe.db.get_value("Employee", {'employee':emp.employee},['working_shift']) 
-        assigned_shift = frappe.db.sql("""select shift from `tabShift Assignment`
-                        where employee = %s and %s between from_date and to_date""", (att.employee, att.attendance_date), as_dict=True)
-        if assigned_shift:
-            working_shift = assigned_shift[0]['shift']
+        
         total_p = get_total_p()
         in_time_row = [emp.employee,"Total P","","In Time"]
         out_time_row = [emp.employee,"Total A","","Out Time"]
@@ -71,6 +68,10 @@ def execute(filters=None):
             # leave_record = get_leaves(emp.employee,day_f)
             att = frappe.get_value("Attendance",{"employee":emp.employee,"attendance_date":day_f},['admin_approved_status','name','attendance_date','status','late_in','early_out','first_half_status','second_half_status','employee','in_time','out_time','work_time','overtime'],as_dict=True)
             if att:
+                assigned_shift = frappe.db.sql("""select shift from `tabShift Assignment`
+                        where employee = %s and %s between from_date and to_date""", (att.employee, att.attendance_date), as_dict=True)
+                if assigned_shift:
+                    working_shift = assigned_shift[0]['shift']
                 if att.in_time:
                     dt = datetime.strptime(att.in_time, "%d/%m/%Y %H:%M:%S")
                     from_time = dt.time()
@@ -99,6 +100,15 @@ def execute(filters=None):
                     else:
                         early_out = timedelta(seconds=0)
                 
+                if att.admin_approved_status == 'First Half Present':
+                    late_in = timedelta(seconds=0)  
+                if att.admin_approved_status == 'Second Half Present':
+                    early_out = timedelta(seconds=0) 
+                if att.admin_approved_status == 'First Half Absent':
+                    late_in = timedelta(hours=1)  
+                if att.admin_approved_status == 'Second Half Absent':
+                    early_out = timedelta(hours=1)    
+
                 if working_shift:row += [working_shift]
                 else:row += ["-"]     
 
@@ -129,6 +139,7 @@ def execute(filters=None):
                         leave_record = get_leaves(att.employee,att.attendance_date)
                         tm_record = get_tm(att.employee,att.attendance_date)
                         od_record = get_od(att.employee,att.attendance_date)
+                        coff_record = get_coff(att.employee,att.attendance_date)
                         if att.status == "On Duty":
                             status = 'OD'
                         elif get_continuous_absents(att.employee,att.attendance_date):
@@ -145,6 +156,10 @@ def execute(filters=None):
                             session1_row += ["OD"]
                             session2_row += ["OD"]   
                             od += 1.0 
+                        elif coff_record[0]:
+                            session1_row += ["C-OFF"]
+                            session2_row += ["C-OFF"]   
+                            coff += 1.0     
                         else:    
                             if h['is_ph']:
                                 status = 'PH'
@@ -160,10 +175,10 @@ def execute(filters=None):
                     session2_row += ["PR"]
                     p += 1.0
 
-                elif att.admin_approved_status == 'Absent':
-                    session1_row += ["AB"]
-                    session2_row += ["AB"]
-                    ab += 1.0
+                # elif att.admin_approved_status == 'Absent':
+                #     session1_row += ["AB"]
+                #     session2_row += ["AB"]
+                #     ab += 1.0
 
                 elif att.admin_approved_status == 'WO' or att.admin_approved_status == 'PH':
                     session1_row += [att.admin_approved_status]
@@ -214,9 +229,24 @@ def execute(filters=None):
                             session2_row += ["OD"]
                             od += 1.0
                     elif coff_record[0]:
-                        session1_row += ["C-OFF"]
-                        session2_row += ["C-OFF"] 
-                        coff += 1.0 
+                        if coff_record[1] == 'First Half':
+                            session1_row += [coff_record[0]]
+                            session2_row += ["AB"]
+                            coff += 0.5
+                            ab += 0.5
+                        elif coff_record[1] == 'Second Half':
+                            session1_row += ["AB"]
+                            session2_row += [coff_record[0]]
+                            coff += 0.5
+                            ab += 0.5
+                        else:    
+                            session1_row += ["C-OFF"]
+                            session2_row += ["C-OFF"]
+                            coff += 1.0        
+                    # elif coff_record[0]:
+                    #     session1_row += ["C-OFF"]
+                    #     session2_row += ["C-OFF"] 
+                    #     coff += 1.0 
                     elif not att.in_time and not att.out_time:
                         session1_row += ["AB"]
                         session2_row += ["AB"]
@@ -240,6 +270,7 @@ def execute(filters=None):
                 elif att.status == "Half Day":
                     leave_session = get_leaves(att.employee,att.attendance_date)
                     od_session = get_od(att.employee,att.attendance_date)
+                    coff_session = get_coff(att.employee,att.attendance_date)
                     if leave_session[1]:
                         if leave_session[1] == "Second Half":
                             session1_row += ["PR"]
@@ -268,13 +299,30 @@ def execute(filters=None):
                             session1_row += [od_session[0]]
                             od += 0.5
                             session2_row += ["PR"] 
+                            p += 0.5   
+                        else:    
+                            row += [att.first_half_status,att.second_half_status]   
+                            if att.first_half_status == 'PR' or att.second_half_status == 'PR':
+                                p += 0.5
+                            if att.first_half_status == 'AB' or att.second_half_status == 'AB':
+                                ab += 0.5 
+                    elif coff_session[1]:
+                        if coff_session[1] == "Second Half":
+                            session1_row += ["PR"]
+                            p += 0.5
+                            session2_row += [coff_session[0]]
+                            coff += 0.5
+                        elif coff_session[1] == "First Half":
+                            session1_row += [coff_session[0]]
+                            coff += 0.5
+                            session2_row += ["PR"] 
                             p += 0.5
                         else:    
                             row += [att.first_half_status,att.second_half_status]   
                             if att.first_half_status == 'PR' or att.second_half_status == 'PR':
                                 p += 0.5
                             if att.first_half_status == 'AB' or att.second_half_status == 'AB':
-                                ab += 0.5         
+                                ab += 0.5                          
                     else:
                         if late_in and late_in > timedelta(minutes=15) and early_out and early_out > timedelta(minutes=5):
                             session1_row += ["AB"]

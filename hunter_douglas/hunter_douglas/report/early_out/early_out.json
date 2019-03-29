@@ -7,7 +7,7 @@
  "doctype": "Report", 
  "idx": 0, 
  "is_standard": "Yes", 
- "modified": "2019-01-08 12:24:44.432276", 
+ "modified": "2019-02-20 15:12:15.550173", 
  "modified_by": "Administrator", 
  "module": "Hunter Douglas", 
  "name": "Early Out", 
@@ -18,6 +18,9 @@
  "roles": [
   {
    "role": "Administrator"
+  }, 
+  {
+   "role": "System Manager"
   }
  ]
 }

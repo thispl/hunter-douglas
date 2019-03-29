@@ -4,5 +4,7 @@
 frappe.ui.form.on('Tour Application Approval', {
 	refresh: function(frm) {
 
-	}
+	},
+	
+	
 });

@@ -25,24 +25,25 @@ class MovementRegister(Document):
         self.validate_approver()	
 
     def validate_approver(self):
-        employee = frappe.get_doc("Employee", self.employee)
-        approvers = [l.leave_approver for l in employee.get("leave_approvers")]
+        if not frappe.session.user == 'hr.hdi@hunterdouglas.asia':
+            employee = frappe.get_doc("Employee", self.employee)
+            approvers = [l.leave_approver for l in employee.get("leave_approvers")]
 
-        if len(approvers) and self.approver not in approvers:
-            frappe.throw(_("Approver must be one of {0}")
-                .format(comma_or(approvers)), InvalidApproverError)
+            if len(approvers) and self.approver not in approvers:
+                frappe.throw(_("Approver must be one of {0}")
+                    .format(comma_or(approvers)), InvalidApproverError)
 
-        elif self.approver and not frappe.db.sql("""select name from `tabHas Role`
-            where parent=%s and role='Leave Approver'""", self.approver):
-            frappe.throw(_("{0} ({1}) must have role 'Approver'")\
-                .format(get_fullname(self.approver), self.approver), InvalidApproverError)
+            elif self.approver and not frappe.db.sql("""select name from `tabHas Role`
+                where parent=%s and role='Leave Approver'""", self.approver):
+                frappe.throw(_("{0} ({1}) must have role 'Approver'")\
+                    .format(get_fullname(self.approver), self.approver), InvalidApproverError)
 
-        elif self.docstatus==0 and len(approvers) and self.approver != frappe.session.user:
-            self.status = 'Applied'
-            
-        elif self.docstatus==1 and len(approvers) and self.approver != frappe.session.user:
-            frappe.throw(_("Only the selected Approver can submit this Application"),
-                LeaveApproverIdentityError)
+            elif self.docstatus==0 and len(approvers) and self.approver != frappe.session.user:
+                self.status = 'Applied'
+                
+            elif self.docstatus==1 and len(approvers) and self.approver != frappe.session.user:
+                frappe.throw(_("Only the selected Approver can submit this Application"),
+                    LeaveApproverIdentityError)
 
 # @frappe.whitelist()
 # def update_att(doc,method):

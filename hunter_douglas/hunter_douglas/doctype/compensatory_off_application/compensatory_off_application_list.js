@@ -46,6 +46,18 @@ frappe.listview_settings['Compensatory Off Application'] = {
 				})
 			}
 		})
-	}
+	},
+	// on_submit: function(frm){
+	// 	var tbl = doc.child_table || [];
+	// 	var i = tbl.length;
+	// 	while (i--)
+	// 	{
+	// 		if(tbl[i].field_name == '')
+	// 		{
+	// 			cur_frm.get_field("child_table").grid.grid_rows[i].remove();
+	// 		}
+	// 	}
+	// 	cur_frm.refresh();
+	// }
     
 };

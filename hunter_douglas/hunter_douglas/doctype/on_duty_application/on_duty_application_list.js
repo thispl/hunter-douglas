@@ -18,7 +18,6 @@ frappe.listview_settings['On Duty Application'] = {
 	
 	
     refresh:function(me){
-		console.log(me)
 		me.page.sidebar.find(".list-link[data-view='Kanban']").addClass("hide");
 		me.page.sidebar.find(".list-link[data-view='Tree']").addClass("hide");
 		me.page.sidebar.find(".assigned-to-me a").addClass("hide");

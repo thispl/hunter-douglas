@@ -19,5 +19,15 @@ frappe.ui.form.on('Movement Register', {
 			minDate: frappe.datetime.str_to_obj(pre),
 			maxDate: frappe.datetime.str_to_obj(nxt)
 		})
+		if(frm.doc.is_from_ar){
+            frm.add_custom_button(__('Back'), function () {
+                frappe.set_route("query-report", "Attendance recapitulation")
+            });
+        }
+	},
+	validate: function(frm){
+		if(frm.doc.is_from_ar == "Yes"){
+            frappe.set_route("query-report", "Attendance recapitulation")
+        }
 	}
 });

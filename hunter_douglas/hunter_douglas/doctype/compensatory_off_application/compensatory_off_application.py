@@ -6,9 +6,10 @@ from __future__ import unicode_literals
 import frappe
 from frappe.model.document import Document
 from datetime import datetime,timedelta
+import time
 from frappe import _
 from frappe.utils import today,flt,add_days,date_diff,getdate,cint,formatdate, getdate, get_link_to_form, \
-    comma_or, get_fullname
+    comma_or, get_fullname,cint
 from hunter_douglas.hunter_douglas.doctype.on_duty_application.on_duty_application import validate_if_attendance_not_applicable
 
 class LeaveApproverIdentityError(frappe.ValidationError): pass
@@ -97,7 +98,7 @@ def get_number_of_leave_days(employee, from_date, to_date,from_date_session=None
     return number_of_days
 
 @frappe.whitelist()
-def get_number_of_required_hours(employee, from_date, to_date,from_date_session=None,  to_date_session=None, date_dif=None):
+def get_number_of_required_hours(employee, from_date, to_date,from_date_session=None,  to_date_session=None, date_dif=None,current_balance=None):
     number_of_days = 0
     if from_date == to_date:
         if from_date_session != 'Full Day':
@@ -113,4 +114,50 @@ def get_number_of_required_hours(employee, from_date, to_date,from_date_session=
             number_of_days = flt(date_dif) - 0.5
         if from_date_session == "Second Half" and to_date_session == "First Half":
             number_of_days = flt(date_dif) - 1
-    return timedelta(hours = (number_of_days * 8))
+    cur_hour = current_balance.split(":")
+    cur_balance = timedelta(hours =cint(cur_hour[0]),minutes=cint(cur_hour[1]))
+    required_balance = timedelta(hours =(number_of_days * 8))
+    reqd_balance =  "%02d:00:00" % (number_of_days * 8)
+    if cur_balance < required_balance:
+        return "less"
+        # frappe.throw("Balance is Less for the Applied Days") 
+    else:    
+        return reqd_balance
+
+
+
+@frappe.whitelist()
+def reduce_comp_off_balance(employee,total_number_of_days):
+    coff_id = frappe.db.exists("Comp Off Details",{"employee":employee})
+    if coff_id:
+        coff = frappe.get_doc("Comp Off Details",coff_id)
+        # child = coff.comp_off_calculation_details
+        # frappe.errprint(coff.total_hours)
+        # h = t
+        # frappe.errprint(h)
+        # t1 = total_number_of_days.total_seconds()  
+        # minutes = t1 // 60
+        # hours = minutes // 60
+        # t3 =  "%02d:%02d:%02d" % (hours, minutes % 60, t1 % 60)
+        # frappe.errprint(t3)
+
+
+
+@frappe.whitelist()
+def remove_child(req_bal,employee):
+    coff_details = frappe.get_doc("Comp Off Details",employee)
+    child = coff_details.comp_off_calculation_details
+    for c in child:
+        FMT = '%H:%M:%S'
+        hour_bal = str(c.hours)
+        diff = datetime.strptime(hour_bal, FMT) - datetime.strptime(req_bal, FMT)
+        # modified_req_bal = req_bal.split(":")
+        # hours =cint(modified_req_bal[0])
+        # minutes=cint(modified_req_bal[1])
+        # modified_hour_bal = hour_bal.split(":")
+        # hours1 =cint(modified_hour_bal[0])
+        # minutes1=cint(modified_hour_bal[1])
+        # hour_diff = hours - hours1
+        # minutes_diff = minutes - minutes1
+        frappe.errprint(diff)
+        # frappe.errprint(minutes_diff)

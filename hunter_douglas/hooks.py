@@ -80,10 +80,22 @@ update_website_context = "hunter_douglas.custom.update_website_context"
 # Hook on document methods and events
 
 doc_events = {
-    # "Movement Register":
-    # {
-    #     "on_submit": "hunter_douglas.hunter_douglas.doctype.movement_register.movement_register.update_att",
-    # },
+    "Comp Off Balance":
+    {
+        "on_update": "hunter_douglas.custom.update_comp_off"
+    },
+    "Performance Management Self":
+    {
+        "on_submit": "hunter_douglas.custom.update_pm_manager"
+    },
+    "Performance Management Manager":
+    {
+        "on_submit": "hunter_douglas.custom.update_pm_hod"
+    },
+    "Performance Management HOD":
+    {
+        "on_submit": "hunter_douglas.custom.update_pm_reviewer"
+    },
     # "On Duty Application":
     # {
     #     "on_submit": "hunter_douglas.hunter_douglas.doctype.on_duty_application.on_duty_application.on_duty_mark",

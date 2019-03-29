@@ -16,7 +16,7 @@ def execute(filters=None):
         filters = {}
 
     columns = get_columns()
-
+    mr_status_in = mr_status_out = False
     data = []
     row = []
     leave_type=from_date_session=to_date_session=""
@@ -51,7 +51,6 @@ def execute(filters=None):
             holiday_list = frappe.db.get_value("Employee", {'employee':att.employee},['holiday_list'])
 
             holiday_date = frappe.db.get_all("Holiday", filters={'holiday_date':att.attendance_date,'parent': holiday_list},fields=['holiday_date','name','is_ph'])
-        
             if att.in_time:
                 dt = datetime.strptime(att.in_time, "%d/%m/%Y %H:%M:%S")
                 from_time = dt.time()
@@ -59,12 +58,21 @@ def execute(filters=None):
                 emp_in_time = timedelta(hours=from_time.hour,minutes=from_time.minute,seconds=from_time.second)
                 #Check Movement Register
                 if get_mr_in(att.employee,att.attendance_date):
+                    mr_status_in = True
+                    frappe.errprint(get_mr_in(att.employee,att.attendance_date))
                     emp_in_time = emp_in_time - get_mr_in(att.employee,att.attendance_date)
-
+                
                 if emp_in_time > shift_in_time:
                     late_in = emp_in_time - shift_in_time
                 else:
                     late_in = timedelta(seconds=0)  
+                    
+                # elif not att.admin_approved_status == 'First Half Present' and not att.admin_approved_status == 'Second Half Present' and late_in and late_in > timedelta(minutes=15) and early_out and early_out > timedelta(minutes=5):
+                #     row += ["AB","AB"]
+                # elif not att.admin_approved_status == 'First Half Present' and late_in and late_in > timedelta(minutes=15):
+                #     row += ["AB","PR"]
+                # elif not att.admin_approved_status == 'Second Half Present' and early_out and early_out > timedelta(minutes=5):
+                #     row += ["PR","AB"]    
 
             if att.out_time:
                 dt = datetime.strptime(att.out_time, "%d/%m/%Y %H:%M:%S")
@@ -73,18 +81,31 @@ def execute(filters=None):
                 emp_out_time = timedelta(hours=end_time.hour,minutes=end_time.minute,seconds=end_time.second)
                 #Check Movement Register
                 if get_mr_out(att.employee,att.attendance_date):
+                    mr_status_out = True
                     emp_out_time = emp_out_time + get_mr_out(att.employee,att.attendance_date)
 
                 if emp_out_time < shift_out_time:
                     early_out = shift_out_time - emp_out_time
+                    frappe.errprint(early_out)
                 else:
                     early_out = timedelta(seconds=0)   
+
+            if att.admin_approved_status == 'First Half Present':
+                late_in = timedelta(seconds=0)  
+            if att.admin_approved_status == 'Second Half Present':
+                early_out = timedelta(seconds=0) 
+
+            if att.admin_approved_status == 'First Half Absent':
+                late_in = timedelta(hours=1)  
+            if att.admin_approved_status == 'Second Half Absent':
+                early_out = timedelta(hours=1)
 
             if holiday_date:
                 for h in holiday_date:
                     leave_record = get_leaves(att.employee,att.attendance_date)
                     tm_record = get_tm(att.employee,att.attendance_date)
                     od_record = get_od(att.employee,att.attendance_date)
+                    coff_record = get_coff(att.employee,att.attendance_date)
                     if att.status == "On Duty":
                         row += ["OD","OD"]
                     elif get_continuous_absents(att.employee,att.attendance_date):    
@@ -95,6 +116,8 @@ def execute(filters=None):
                         row += ["TR","TR"]
                     elif od_record[0]:
                         row += ["OD","OD"]      
+                    elif coff_record[0]:
+                        row += ["C-OFF","C-OFF"]     
                     else:    
                         if h['is_ph']:
                             row += ["PH","PH"]
@@ -104,8 +127,8 @@ def execute(filters=None):
             elif att.admin_approved_status == 'Present':
                 row += ["PR","PR"]
 
-            elif att.admin_approved_status == 'Absent':
-                row += ["AB","AB"]
+            # elif att.admin_approved_status == 'Absent':
+            #     row += ["AB","AB"]
 
             elif att.admin_approved_status == 'WO' or att.admin_approved_status == 'PH':
                 row += [att.admin_approved_status,att.admin_approved_status]
@@ -116,6 +139,7 @@ def execute(filters=None):
                 tm_record = get_tm(att.employee,att.attendance_date)
                 od_record = get_od(att.employee,att.attendance_date)
                 coff_record = get_coff(att.employee,att.attendance_date)
+                
                 if leave_record[1]:
                     if leave_record[1] == 'First Half':
                         row += [leave_record[0],"AB"]
@@ -135,8 +159,15 @@ def execute(filters=None):
                         row += ["AB",od_record[0]]    
                     else:
                         row += ["OD","OD"]
-                elif coff_record[0]:
-                    row += ["C-OFF","C-OFF"]         
+                elif coff_record[1]:
+                    if coff_record[1] == 'First Half':
+                        row += [coff_record[0],"AB"]
+                    elif coff_record[1] == 'Second Half':
+                        row += ["AB",coff_record[0]]    
+                    else:
+                        row += ["C-OFF","C-OFF"]        
+                # elif coff_record[0]:
+                #     row += ["C-OFF","C-OFF"]         
                 elif not (att.in_time and att.out_time):
                     row += ["AB","AB"] 
                 else:   
@@ -162,9 +193,9 @@ def execute(filters=None):
                         row += [att.first_half_status,att.second_half_status]   
                 elif coff_session[1]:
                     if coff_session[1] == "Second Half":
-                        row += ["C-OFF",coff_session[0]]
+                        row += ["PR",coff_session[0]]
                     elif coff_session[1] == "First Half":
-                        row += [coff_session[0],"C-OFF"]  
+                        row += [coff_session[0],"PR"]  
                     elif coff_session[1] == "Full Day":
                         row += ["C-OFF","C-OFF"]
                     else:    
@@ -225,12 +256,28 @@ def execute(filters=None):
             if att.out_time:   
                 row += [end_time.isoformat()]
             else:row += ["-"]  
+
+            # if att.in_time and att.out_time: 
+            #     out_time_f = datetime.strptime(att.out_time, "%d/%m/%Y %H:%M:%S")
+            #     in_time_f = datetime.strptime(att.in_time, "%d/%m/%Y %H:%M:%S") 
+            #     time_diff = out_time_f - in_time_f   
+            #     row += [time_diff]
+            # else:row += ["-"]     
     
             if att.in_time and late_in:row += [late_in]
             else:row += ["-"]
 
             if att.out_time and early_out:row += [early_out]
             else:row += ["-"]
+
+            # if mr_status_in and mr_status_out:
+            #     row += ["Approved In/Out"]
+            # elif mr_status_in:
+            #     row += ["Approved In"]
+            # elif mr_status_out:
+            #     row += ["Approved Out"]
+            # else:
+            #     row += ["-"]    
 
             if att.work_time:row += [att.work_time]
             else:row += ["-"]
@@ -250,12 +297,14 @@ def get_columns():
         _("Attendance Date") + ":Date:100",
         _("Employee") + ":Link/Employee:100", 
         _("Employee Name") + ":Data:180",
-        _("Shift") + ":Data:90",
+        _("Shift") + ":Link/Working Shift:90",
         _("Session1") + ":Data:90",
          _("Session2") + ":Data:90",
         _("In Time") + ":Data:90",
         _("Out Time") + ":Data:90",
+        # _("Time Diff") + ":Data:90",
         _("Late In") + ":Data:90",
+        # _("MR Status") + ":Data:90",
         _("Early Out") + ":Data:90",
         _("Work Time") + ":Data:90",
          _("Over Time") + ":Data:90",
@@ -290,14 +339,14 @@ def get_conditions(filters):
 
 def get_leaves(emp,day):
     leave_type = from_date_session = to_date_session = leave = session = ""
-    leave_record = frappe.db.sql("""select from_date,to_date,half_day,leave_type,from_date_session,to_date_session from `tabLeave Application`
+    leave_record = frappe.db.sql("""select from_date,to_date,half_day,half_day_date,leave_type,from_date_session,to_date_session from `tabLeave Application`
                         where employee = %s and %s between from_date and to_date
                         and docstatus = 1 and status='Approved'""", (emp, day), as_dict=True)
     
     if leave_record:
         for l in leave_record:
             leave_type = l.leave_type
-            half_day = l.half_day
+            half_day = l.half_day_date
             from_date = l.from_date
             to_date = l.to_date
             from_date_session = l.from_date_session
@@ -306,13 +355,12 @@ def get_leaves(emp,day):
         if half_day:
             if from_date == to_date:
                session = from_date_session 
-            else:   
+            else:  
                 if from_date == day:
                     session = from_date_session
                 elif to_date == day:
                     session = to_date_session 
 
-        frappe.errprint(leave_type)
         if leave_type == "Privilege Leave":
             leave = ["PL"]
         elif leave_type == "Casual Leave":
@@ -321,7 +369,9 @@ def get_leaves(emp,day):
             leave = ["SL"]
         else:
             leave = ["LOP"]  
-            
+    # frappe.errprint(day)        
+    # frappe.errprint(leave)   
+    # frappe.errprint(session)      
     return leave,session
 
 def get_od(emp,day):
@@ -356,7 +406,6 @@ def get_coff(emp,day):
                         and docstatus = 1 and status='Approved'""", (emp, day), as_dict=True)
     if coff_record:
         for c in coff_record:
-            frappe.errprint(c)
             half_day = c.half_day
             from_date = c.from_date
             to_date = c.to_date
@@ -373,7 +422,7 @@ def get_coff(emp,day):
                     session = to_date_session 
         else:
             session = from_date_session             
-        coff = ["COFF"]  
+        coff = ["COFF"]     
     return coff,session
 
 def get_tm(emp,day):
@@ -388,19 +437,22 @@ def get_continuous_absents(emp,day):
     preday = postday = day
     while validate_if_attendance_not_applicable(emp,postday):
         postday = add_days(postday,1)
-    next_day = frappe.db.get_value("Attendance",{"attendance_date":postday,"employee":emp},["status"]) 
+    next_day = frappe.db.get_value("Attendance",{"attendance_date":postday,"employee":emp},["status"])
+    next_day_admin_status = frappe.db.get_value("Attendance",{"attendance_date":postday,"employee":emp},["admin_approved_status"]) 
     while validate_if_attendance_not_applicable(emp,preday):
         preday = add_days(preday,-1)   
     prev_day = frappe.db.get_value("Attendance",{"attendance_date":preday,"employee":emp},["status"])       
-    
+    prev_day_admin_status = frappe.db.get_value("Attendance",{"attendance_date":preday,"employee":emp},["admin_approved_status"])
     if prev_day == 'Absent' and next_day == 'Absent':
-        return True
+        if next_day_admin_status == "WO" or prev_day_admin_status == "WO":
+            return False
+        else:
+            return True
     return False    
     
 def get_other_day(emp,day):
     holiday = False  
     if is_holiday(emp,day):
-        # frappe.errprint("pre holiday")
         holiday = True
 
     return holiday
@@ -408,7 +460,6 @@ def get_other_day(emp,day):
 # def get_next_day(emp,day):
 #     holiday = False  
 #     if is_holiday(emp,day):
-#         frappe.errprint("post holiday")
 #         holiday = True
 #     return holiday            
 

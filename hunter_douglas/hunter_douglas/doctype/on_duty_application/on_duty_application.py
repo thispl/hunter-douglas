@@ -12,7 +12,7 @@ from frappe.utils import today,flt,add_days,date_diff,getdate,cint,formatdate, g
 
 class LeaveApproverIdentityError(frappe.ValidationError): pass
 class OverlapError(frappe.ValidationError): pass
-class InvalidLeaveApproverError(frappe.ValidationError): pass
+class InvalidApproverError(frappe.ValidationError): pass
 class AttendanceAlreadyMarkedError(frappe.ValidationError): pass    
 
 class OnDutyApplication(Document):
@@ -64,7 +64,7 @@ class OnDutyApplication(Document):
             }, as_dict = 1):
 
             if cint(self.half_day)==1 and getdate(self.half_day_date) == getdate(d.half_day_date) and (
-                flt(self.total_leave_days)==0.5
+                flt(self.total_number_of_days)==0.5
                 or getdate(self.from_date) == getdate(d.to_date)
                 or getdate(self.to_date) == getdate(d.from_date)):
 
@@ -79,6 +79,21 @@ class OnDutyApplication(Document):
             d['on_duty_type'], formatdate(d['from_date']), formatdate(d['to_date'])) \
             + """ <br><b><a href="#Form/On Duty Application/{0}">{0}</a></b>""".format(d["name"])
         frappe.throw(msg, OverlapError)
+
+    def get_total_leaves_on_half_day(self):
+        leave_count_on_half_day_date = frappe.db.sql("""select count(name) from `tabOn Duty Application`
+            where employee = %(employee)s
+            and docstatus < 2
+            and status in ("Open","Applied", "Approved")
+            and half_day = 1
+            and half_day_date = %(half_day_date)s
+            and name != %(name)s""", {
+                "employee": self.employee,
+                "half_day_date": self.half_day_date,
+                "name": self.name
+            })[0][0]
+
+        return leave_count_on_half_day_date * 0.5
 
     # def on_cancel(self):
     #     attendance_list = frappe.get_list("Attendance", {'employee': self.employee, 'on_duty_application': self.name})

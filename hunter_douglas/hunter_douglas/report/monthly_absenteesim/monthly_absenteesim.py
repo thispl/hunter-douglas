@@ -55,7 +55,7 @@ def execute(filters=None):
                     holiday_date = frappe.db.get_all("Holiday", filters={'holiday_date':at.attendance_date,'parent': holiday_list},fields=['holiday_date','name','is_ph'])         
                     working_shift = frappe.db.get_value("Employee", {'employee':emp.employee},['working_shift'])   
                     assigned_shift = frappe.db.sql("""select shift from `tabShift Assignment`
-                        where employee = %s and %s between from_date and to_date""", (att.employee, att.attendance_date), as_dict=True)
+                        where employee = %s and %s between from_date and to_date""", (at.employee, at.attendance_date), as_dict=True)
                     if assigned_shift:
                         working_shift = assigned_shift[0]['shift'] 
                     if at.in_time:
@@ -86,7 +86,15 @@ def execute(filters=None):
                         else:
                             early_out = ''
                     
-                    
+                    if at.admin_approved_status == 'First Half Present':
+                        late_in = timedelta(seconds=0)  
+                    if at.admin_approved_status == 'Second Half Present':
+                        early_out = timedelta(seconds=0)    
+                    if at.admin_approved_status == 'First Half Absent':
+                        late_in = timedelta(hours=1)  
+                    if at.admin_approved_status == 'Second Half Absent':
+                        early_out = timedelta(hours=1)     
+
                     if holiday_date:
                         for h in holiday_date:
                             if get_continuous_absents(emp.employee,at.attendance_date):
@@ -253,7 +261,7 @@ def get_holiday_list_for_employee(employee, raise_exception=True):
         company=frappe.db.get_value("Global Defaults", None, "default_company")
 
     if not holiday_list:
-        holiday_list = frappe.get_cached_value('Company',  company,  "default_holiday_list")
+        holiday_list = frappe.get_value('Company',  company,  "default_holiday_list")
 
     if not holiday_list and raise_exception:
         frappe.throw(_('Please set a default Holiday List for Employee {0} or Company {1}').format(employee, company))

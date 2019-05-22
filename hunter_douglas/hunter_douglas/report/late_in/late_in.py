@@ -27,6 +27,10 @@ def execute(filters=None):
         skip_attendance = validate_if_attendance_not_applicable(att.employee,att.attendance_date)
         if not skip_attendance:
             working_shift = frappe.db.get_value("Employee", {'employee':att.employee},['working_shift']) 
+            assigned_shift = frappe.db.sql("""select shift from `tabShift Assignment`
+                        where employee = %s and %s between from_date and to_date""", (att.employee, att.attendance_date), as_dict=True)
+            if assigned_shift:
+                working_shift = assigned_shift[0]['shift']
             if att.in_time:
                 dt = datetime.strptime(att.in_time, "%d/%m/%Y %H:%M:%S")
                 from_time = dt.time()

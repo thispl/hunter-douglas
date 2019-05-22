@@ -68,7 +68,7 @@ frappe.ui.form.on('Tour Application', {
         }
     },
 	validate: function(frm){
-        if(!frappe.user.has_role("Auto Present Employee")){
+        if(!frappe.user.has_role("Auto Present Employee") && (frappe.user.has_role("Employee"))){
             frappe.call({
                 "method": 'hunter_douglas.hunter_douglas.doctype.on_duty_application.on_duty_application.check_attendance',
                 args: {
@@ -101,8 +101,26 @@ frappe.ui.form.on('Tour Application', {
                 }
             });
         }
-        if(frm.doc.is_from_ar == "Yes"){
+        if(frm.doc.is_from_ar && frm.doc.status == "Applied"){
             frappe.set_route("query-report", "Attendance recapitulation")
+        }
+    },
+    on_submit: function(frm){
+        if(frm.doc.status == "Approved"){
+            frappe.call({
+                "method": 'hunter_douglas.update_attendance.update_attendance_by_app',
+                args: {
+                    "employee": frm.doc.employee,
+                    "from_date": frm.doc.from_date,
+                    "to_date": frm.doc.to_date,
+                    "from_date_session":frm.doc.from_date_session,
+                    "to_date_session": frm.doc.to_date_session,
+                    "m_status": "TR"
+                },
+                callback: function(r){
+
+                }
+            })
         }
     }
 });

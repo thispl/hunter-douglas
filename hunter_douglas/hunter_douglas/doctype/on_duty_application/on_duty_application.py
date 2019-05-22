@@ -9,6 +9,7 @@ from datetime import datetime,timedelta
 from frappe import _
 from frappe.utils import today,flt,add_days,date_diff,getdate,cint,formatdate, getdate, get_link_to_form, \
     comma_or, get_fullname
+from hunter_douglas.custom import update_attendance_by_app    
 
 class LeaveApproverIdentityError(frappe.ValidationError): pass
 class OverlapError(frappe.ValidationError): pass
@@ -19,6 +20,8 @@ class OnDutyApplication(Document):
     def on_submit(self):
         if self.status == "Applied":
             frappe.throw(_("Only Applications with status 'Approved' and 'Rejected' can be submitted"))
+        # if self.status == "Approved":
+        #     update_attendance_by_app(self.employee,self.from_date,self.to_date,self.from_date_session,self.to_date_session,"OD")
 
     def validate(self):
         self.validate_approver()

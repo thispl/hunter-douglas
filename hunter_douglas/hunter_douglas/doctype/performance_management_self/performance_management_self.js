@@ -170,21 +170,50 @@ frappe.ui.form.on('Performance Management Self', {
             }
         }
     },
-    onload: function (frm) {
+    refresh: function (frm) {
         
-        // if (!frm.doc.__islocal)
-        // {
-        //     frappe.call({
-        //         "method": "hunter_douglas.hunter_douglas.doctype.performance_management_self.performance_management_self.sort_r",
-        //         args: {
-        //             "table": frm.doc.competency_assessment1
-        //         },
-        //         callback: function (r) {
-
-        //         }
-        //     })
-        // }
-
+        if(frm.doc.employee_code){
+            frappe.call({
+                "method": "frappe.client.get",
+                args:{
+                    "doctype": "Performance Management Calibration",
+                    filters:{
+                        "employee_code":frm.doc.employee_code,
+                        "pm_year": frm.doc.pm_year
+                    }
+                },
+                callback: function(r){
+                    if(r.message.docstatus == 0){
+                        frm.add_custom_button(__('Print'), function () {
+                            // if (frm.doc.docstatus == "1"){
+                        var me = this;
+                    var doc = "Performance Management Calibration"
+                    // frappe.call({
+                    //     "method": "frappe.client.get",
+                    //     args:{
+                    //         "doctype": "Performance Management Calibration",
+                    //         filters:{
+                    //             "employee_code": frm.doc.employee_code,
+                    //             "pm_year": frm.doc.pm_year
+                    //         }
+                    //     },
+                    //     callback: function(r){
+                            var f_name = r.message.name
+                            var print_format = "Annexure";
+                    var w = window.open(frappe.urllib.get_full_url("/api/method/frappe.utils.print_format.download_pdf?"
+                    +"doctype="+encodeURIComponent("Performance Management Calibration")
+                    +"&name="+encodeURIComponent(f_name)
+                    +"&trigger_print=1"
+                    +"&format=" + print_format
+                    +"&no_letterhead=0"
+                    +(me.lang_code ? ("&_lang="+me.lang_code) : "")));
+                        // }
+                    // })
+                })
+                    }
+                }
+            })
+        }
 
         frm.get_field("sales_target").grid.only_sortable();
 
@@ -222,11 +251,8 @@ frappe.ui.form.on('Performance Management Self', {
         $('h6:contains("Goal Setting - Last Year")').text('Goal Setting - ' + (new Date().getFullYear()));
         $('h6:contains("Goal Setting - Current Year")').text('Goal Setting - ' + pastYear);
 
-        frm.trigger("refresh")
     },
-    // refresh: function(frm){
-    //     frm.trigger("after_save_make_default_row")
-    // },
+        
     make_default_row: function (frm) {
         if (frm.doc.__islocal) {
             for (var i = 0; i < 5; i++) {

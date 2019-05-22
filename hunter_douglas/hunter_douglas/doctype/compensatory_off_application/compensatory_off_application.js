@@ -128,24 +128,25 @@ frappe.ui.form.on('Compensatory Off Application', {
         });
         frm.trigger("balance_check")
     },
-    onload: function(frm){
-        if(frm.doc.employee){
-        frappe.call({
-            "method": "hunter_douglas.hunter_douglas.doctype.compensatory_off_application.compensatory_off_application.remove_child",
-            "args":{
-                "req_bal": frm.doc.required_balance,
-                "employee": frm.doc.employee
-            },
-            callback: function(r){
-                if(r.message){
+//     onload: function(frm){
+//         if(frm.doc.employee){
+//         frappe.call({
+//             "method": "hunter_douglas.hunter_douglas.doctype.compensatory_off_application.compensatory_off_application.remove_child",
+//             "args":{
+//                 "req_bal": frm.doc.required_balance,
+//                 "employee": frm.doc.employee
+//             },
+//             callback: function(r){
+//                 if(r.message){
 
-                }
-            }
-        })
-    }
+//                 }
+//             }
+//         })
+//     }
+// },
         
         
-    },
+    // },
     calculate_total_days: function(frm) {
         if(frm.doc.from_date && frm.doc.to_date && frm.doc.employee) {
             var date_dif = frappe.datetime.get_diff(frm.doc.to_date, frm.doc.from_date) + 1

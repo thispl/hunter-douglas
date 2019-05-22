@@ -12,6 +12,7 @@ from frappe.utils import today,flt,add_days,date_diff,getdate,cint,formatdate, g
     comma_or, get_fullname,cint
 from hunter_douglas.hunter_douglas.doctype.on_duty_application.on_duty_application import validate_if_attendance_not_applicable
 
+
 class LeaveApproverIdentityError(frappe.ValidationError): pass
 class OverlapError(frappe.ValidationError): pass
 class InvalidApproverError(frappe.ValidationError): pass
@@ -22,9 +23,12 @@ class CompensatoryOffApplication(Document):
         if self.status == "Applied":
             frappe.throw(_("Only Applications with status 'Approved' and 'Rejected' can be submitted"))
 
+        if self.status == "Approved":
+            remove_child(self.required_balance,self.employee)
+
     def validate(self):
         self.validate_approver()
-        self.validate_coff_overlap()	
+        # self.validate_coff_overlap()	
 
     def validate_approver(self):
         if not frappe.session.user == 'hr.hdi@hunterdouglas.asia':
@@ -42,36 +46,38 @@ class CompensatoryOffApplication(Document):
                 self.status = 'Applied'
                 
             elif self.docstatus==1 and len(approvers) and self.approver != frappe.session.user:
-                frappe.throw(_("Only the selected Approver can submit this Application"),LeaveApproverIdentityError)
+                system_manager = frappe.get_doc("User", frappe.session.user).get("roles",{"role": "System Manager"})
+                if not system_manager:
+                    frappe.throw(_("Only the selected Approver can submit this Application"),LeaveApproverIdentityError)
     
-    def validate_coff_overlap(self):
-        if not self.name:
-            # hack! if name is null, it could cause problems with !=
-            self.name = "New Compensatory Off Application"
+    # def validate_coff_overlap(self):
+    #     if not self.name:
+    #         # hack! if name is null, it could cause problems with !=
+    #         self.name = "New Compensatory Off Application"
 
-        for d in frappe.db.sql("""
-            select
-                name, posting_date, from_date, to_date, total_number_of_days, half_day_date
-            from `tabCompensatory Off Application`
-            where employee = %(employee)s and docstatus < 2 and status in ("Open","Applied", "Approved")
-            and to_date >= %(from_date)s and from_date <= %(to_date)s
-            and name != %(name)s""", {
-                "employee": self.employee,
-                "from_date": self.from_date,
-                "to_date": self.to_date,
-                "name": self.name
-            }, as_dict = 1):
+    #     for d in frappe.db.sql("""
+    #         select
+    #             name, posting_date, from_date, to_date, total_number_of_days, half_day_date
+    #         from `tabCompensatory Off Application`
+    #         where employee = %(employee)s and docstatus < 2 and status in ("Open","Applied", "Approved")
+    #         and to_date >= %(from_date)s and from_date <= %(to_date)s
+    #         and name != %(name)s""", {
+    #             "employee": self.employee,
+    #             "from_date": self.from_date,
+    #             "to_date": self.to_date,
+    #             "name": self.name
+    #         }, as_dict = 1):
 
-            if cint(self.half_day)==1 and getdate(self.half_day_date) == getdate(d.half_day_date) and (
-                flt(self.total_leave_days)==0.5
-                or getdate(self.from_date) == getdate(d.to_date)
-                or getdate(self.to_date) == getdate(d.from_date)):
+    #         # if cint(self.half_day)==1 and getdate(self.half_day_date) == getdate(d.half_day_date) and (
+    #         #     # flt(self.total_leave_days)==0.5
+    #         #     getdate(self.from_date) == getdate(d.to_date)
+    #         #     or getdate(self.to_date) == getdate(d.from_date)):
 
-                total_leaves_on_half_day = self.get_total_leaves_on_half_day()
-                if total_leaves_on_half_day >= 1:
-                    self.throw_overlap_error(d)
-            else:
-                self.throw_overlap_error(d)
+    #             # total_leaves_on_half_day = self.get_total_leaves_on_half_day()
+    #             # if total_leaves_on_half_day >= 1:
+    #             #     self.throw_overlap_error(d)
+    #         else:
+    #             self.throw_overlap_error(d)
 
     def throw_overlap_error(self, d):
         msg = _("Employee {0} has already applied for C-OFF between {1} and {2}").format(self.employee,formatdate(d['from_date']), formatdate(d['to_date'])) \
@@ -114,11 +120,15 @@ def get_number_of_required_hours(employee, from_date, to_date,from_date_session=
             number_of_days = flt(date_dif) - 0.5
         if from_date_session == "Second Half" and to_date_session == "First Half":
             number_of_days = flt(date_dif) - 1
+    frappe.errprint(current_balance)
     cur_hour = current_balance.split(":")
-    cur_balance = timedelta(hours =cint(cur_hour[0]),minutes=cint(cur_hour[1]))
+    cur_balance = timedelta(hours=cint(cur_hour[0]),minutes=cint(cur_hour[1]))
+
     required_balance = timedelta(hours =(number_of_days * 8))
     reqd_balance =  "%02d:00:00" % (number_of_days * 8)
-    if cur_balance < required_balance:
+    frappe.errprint(cur_balance.total_seconds())
+    frappe.errprint(required_balance.total_seconds())
+    if cur_balance.total_seconds() < required_balance.total_seconds():
         return "less"
         # frappe.throw("Balance is Less for the Applied Days") 
     else:    
@@ -126,11 +136,11 @@ def get_number_of_required_hours(employee, from_date, to_date,from_date_session=
 
 
 
-@frappe.whitelist()
-def reduce_comp_off_balance(employee,total_number_of_days):
-    coff_id = frappe.db.exists("Comp Off Details",{"employee":employee})
-    if coff_id:
-        coff = frappe.get_doc("Comp Off Details",coff_id)
+# @frappe.whitelist()
+# def reduce_comp_off_balance(employee,total_number_of_days):
+#     coff_id = frappe.db.exists("Comp Off Details",{"employee":employee})
+#     if coff_id:
+#         coff = frappe.get_doc("Comp Off Details",coff_id)
         # child = coff.comp_off_calculation_details
         # frappe.errprint(coff.total_hours)
         # h = t
@@ -145,12 +155,66 @@ def reduce_comp_off_balance(employee,total_number_of_days):
 
 @frappe.whitelist()
 def remove_child(req_bal,employee):
+    total = 0.0
+    req_bal = req_bal.split(":")
+    req_bal = timedelta(hours=cint(req_bal[0]),minutes=cint(req_bal[1])).total_seconds()
+    # total_req_bal = req_bal
     coff_details = frappe.get_doc("Comp Off Details",employee)
+    total_hours = coff_details.total_hours
+    if total_hours:
+        total_hours = total_hours.split(":")
+        total_hours = timedelta(hours =cint(total_hours[0]),minutes=cint(total_hours[1])).total_seconds()
+        if total_hours >= req_bal:
+            total_hours -= req_bal
     child = coff_details.comp_off_calculation_details
-    for c in child:
-        FMT = '%H:%M:%S'
-        hour_bal = str(c.hours)
-        diff = datetime.strptime(hour_bal, FMT) - datetime.strptime(req_bal, FMT)
+    c = 0
+    while c < len(child):
+        if req_bal > 0:
+            avl_hours = (child[c].hours).total_seconds()
+            if avl_hours <= req_bal:
+                req_bal -= avl_hours
+                coff = frappe.delete_doc('Comp Off Calculation Details',child[c].name)
+                c += 1
+            else:
+                if req_bal > 0:
+                    avl_hours -= req_bal
+                    coff = frappe.get_doc('Comp Off Calculation Details',child[c].name)
+                    coff.hours = timedelta(seconds=avl_hours) 
+                    coff.db_update()
+                    frappe.db.commit()
+                    coff_details.update({
+                        "total_hours": format_seconds_to_hhmmss(total_hours)
+                    })   
+                    coff_details.save(ignore_permissions=True)
+                    frappe.db.commit()
+                    break
+                elif req_bal == 0:
+                    coff_details.update({
+                        "total_hours": format_seconds_to_hhmmss(total_hours)
+                    })   
+                    coff_details.save(ignore_permissions=True)
+                    frappe.db.commit()
+                    break
+        else:
+            break
+
+def format_seconds_to_hhmmss(seconds):
+    hours = seconds // (60*60)
+    seconds %= (60*60)
+    minutes = seconds // 60
+    seconds %= 60
+    return "%02i:%02i:%02i" % (hours, minutes, seconds)            
+    # total_hours -= total_req_bal     
+    # coff_details.update({
+    #     "total_hours": timedelta(seconds=total_hours)
+    # })   
+    # coff_details.save(ignore_permissions=True)
+    # frappe.db.commit()
+    # frappe.errprint(avl_hours)
+    # diff = avl_hours - req_bal
+    # frappe.errprint(total)
+    # frappe.errprint(req_bal)
+    # frappe.errprint(diff)
         # modified_req_bal = req_bal.split(":")
         # hours =cint(modified_req_bal[0])
         # minutes=cint(modified_req_bal[1])
@@ -159,5 +223,5 @@ def remove_child(req_bal,employee):
         # minutes1=cint(modified_hour_bal[1])
         # hour_diff = hours - hours1
         # minutes_diff = minutes - minutes1
-        frappe.errprint(diff)
+        # frappe.errprint(hour_diff)
         # frappe.errprint(minutes_diff)

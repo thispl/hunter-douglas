@@ -4,8 +4,8 @@
 frappe.ui.form.on('Movement Register', {
 	refresh:function(frm){
 		var from_time_picker = frm.fields_dict.from_time.datepicker;
-		var pre = frappe.datetime.add_days(frappe.datetime.now_date(), -1);
-		var nxt = frappe.datetime.add_days(frappe.datetime.now_date(), 1);
+		var pre = frappe.datetime.add_days(frappe.datetime.now_date(), -2);
+		var nxt = frappe.datetime.add_days(frappe.datetime.now_date(), 2);
 		from_time_picker.update({
 			showSecond: false,
 			maxSeconds: 00,
@@ -29,5 +29,19 @@ frappe.ui.form.on('Movement Register', {
 		if(frm.doc.is_from_ar == "Yes"){
             frappe.set_route("query-report", "Attendance recapitulation")
         }
-	}
+	},
+	// onload: function(frm){
+	// 	frappe.call({
+	// 		"method": "hunter_douglas.custom.update_mr_in_att",
+	// 		args:{
+	// 			"employee": frm.doc.employee,
+	// 			"from_time": frm.doc.from_time,
+	// 			"to_time": frm.doc.to_time,
+	// 			"total_permission_hour": frm.doc.total_permission_hour
+	// 		},
+	// 		callback: function(r){
+
+	// 		}
+	// 	})
+	// }
 });

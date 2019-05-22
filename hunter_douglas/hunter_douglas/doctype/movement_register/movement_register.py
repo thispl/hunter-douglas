@@ -10,6 +10,7 @@ from frappe import _
 from frappe.utils import today,flt,add_days,date_diff,getdate
 from frappe.utils import today,flt,add_days,date_diff,getdate,cint,formatdate, getdate, get_link_to_form, \
     comma_or, get_fullname
+from hunter_douglas.custom import update_mr_in_att
 
 class LeaveApproverIdentityError(frappe.ValidationError): pass
 class OverlapError(frappe.ValidationError): pass
@@ -20,6 +21,9 @@ class MovementRegister(Document):
     def on_submit(self):
         if self.status == "Applied":
             frappe.throw(_("Only Applications with status 'Approved' and 'Rejected' can be submitted"))
+        if self.status == "Approved":
+            update_mr_in_att(self.employee,self.from_time,self.to_time,self.total_permission_hour)
+
 
     def validate(self):
         self.validate_approver()	

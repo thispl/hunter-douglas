@@ -63,6 +63,11 @@ frappe.query_reports["Attendance recapitulation"] = {
 			columnDef.df.link_onclick =
 				"frappe.query_reports['Attendance recapitulation'].open_att_adjust(" + JSON.stringify(dataContext) + ")";
 		}
+		if (columnDef.id == "Name" && frappe.user.has_role("Employee")) {
+			value = dataContext.Name
+			columnDef.df.link_onclick =
+				"frappe.query_reports['Attendance recapitulation'].block_employee(" + JSON.stringify(dataContext) + ")";
+		}
 		if (columnDef.id == "Shift" && frappe.user.has_role("System Manager")) {
 			value = dataContext.Shift
 			columnDef.df.link_onclick =
@@ -96,6 +101,9 @@ frappe.query_reports["Attendance recapitulation"] = {
 		}
 		return value;
 	},
+	//added to block employees from accessing attendance
+	"block_employee": function (data) {},
+
 	"open_att_adjust": function (data) {
 
 		if (data['In Time'] == '-') {
@@ -222,7 +230,7 @@ frappe.query_reports["Attendance recapitulation"] = {
 				{ fieldtype: "Date", fieldname: "date", label: __("Date"), default: data['Attendance Date'], reqd: 0 },
 				{ fieldtype: "Column Break", fieldname: "cb3", label: __(""), reqd: 0 },
 				{ fieldtype: "Button", fieldname: "assign", label: __("Assign"), reqd: 0 },
-				{ fieldtype: "Select", fieldname: "shift", label: __("Shift"), options: ["GF1(8:00:00 - 16:30:00)", "GF2(9:00:00 - 17:30:00)", "GO1(8:00:00 - 16:45:00)", "GO2(9:00:00 - 17:45:00)", "FS1(6:00:00 - 14:30:00)", "FS2(7:00:00 - 15:30:00)", "FS3(15:00:00 - 23:00:00)", "FS4(23:00:00 - 7:00:00)"], reqd: 0 }
+				{ fieldtype: "Select", fieldname: "shift", label: __("Shift"), options: ["GF1(8:00:00 - 16:30:00)", "GF2(9:00:00 - 17:30:00)", "GO1(8:00:00 - 16:45:00)", "GO2(9:00:00 - 17:45:00)", "GO3(10:00:00 - 18:45:00)","FS1(6:00:00 - 14:30:00)", "FS2(7:00:00 - 15:30:00)", "FS3(15:00:00 - 23:00:00)", "FS4(23:00:00 - 7:00:00)"], reqd: 0 }
 
 			],
 			primary_action: function () {

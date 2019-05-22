@@ -96,6 +96,10 @@ doc_events = {
     {
         "on_submit": "hunter_douglas.custom.update_pm_reviewer"
     },
+    # "Performance Management Reviewer":
+    # {
+    #     "on_submit": "hunter_douglas.custom.update_pm_calibration"
+    # }
     # "On Duty Application":
     # {
     #     "on_submit": "hunter_douglas.hunter_douglas.doctype.on_duty_application.on_duty_application.on_duty_mark",
@@ -118,9 +122,9 @@ scheduler_events = {
 # 	"all": [
 # 		"hunter_douglas.tasks.all"
 # 	],
-    # "hourly": [
-    #     "hunter_douglas.custom.fetch_att"
-    # ],
+    "daily": [
+        "hunter_douglas.custom.fetch_att_prev"
+    ],
     "cron": {
         "0 7-23/1 * * *":[
             "hunter_douglas.custom.fetch_att"
@@ -128,9 +132,9 @@ scheduler_events = {
         "*/15 9-11 * * *":[
             "hunter_douglas.custom.fetch_att"
         ],
-        "00 10 * * *":[
-            "hunter_douglas.custom.in_punch_alert"
-        ],
+        # "00 10 * * *":[
+        #     "hunter_douglas.custom.in_punch_alert"
+        # ],
         "00 19 * * *":[
             "hunter_douglas.custom.fetch_att"
             "hunter_douglas.custom.out_punch_alert"

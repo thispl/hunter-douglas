@@ -9,17 +9,20 @@ import datetime
 import json,calendar
 from datetime import datetime,timedelta,date,time
 import datetime as dt
-from frappe.utils import today,flt,add_days,add_months,date_diff,getdate,formatdate,cint,cstr
+from frappe.utils import cint,today,flt,date_diff,add_days,add_months,date_diff,getdate,formatdate,cint,cstr
 from frappe.desk.notifications import delete_notification_count_for
 from frappe import _
 import xml.etree.ElementTree as ET
-from hunter_douglas.doctype.on_duty_application.on_duty_application import validate_if_attendance_not_applicable
+# from hunter_douglas.hunter_douglas.report.monthly_absenteesim.monthly_absenteesim import validate_if_attendance_not_applicable    
 from frappe.email.email_body import (replace_filename_with_cid,
     get_email, inline_style_in_html, get_header)
+import dateutil.parser
+# from hunter_douglas.update_attendance import update_att_from_shift
 
 
 @frappe.whitelist()
-def fetch_att_test(from_date,to_date):
+def fetch_att_test(from_date,to_date,employee=None):
+    employees = []
     from_date = (datetime.strptime(str(from_date), '%Y-%m-%d')).date()
     to_date = (datetime.strptime(str(to_date), '%Y-%m-%d')).date()
     for preday in daterange(from_date, to_date):
@@ -29,8 +32,12 @@ def fetch_att_test(from_date,to_date):
         auto_present_list = []
         for e in exc:
             auto_present_list.append(e.employee)
-        employees = frappe.get_all('Employee',{'status':'Active','date_of_joining':('<=',preday)})
+        if employee:
+            employees.append(employee)
+        else:
+            employees = frappe.get_all('Employee',{'status':'Active','date_of_joining':('<=',preday)})
         for emp in employees:
+            frappe.errprint(emp)
             working_shift = frappe.db.get_value("Employee", {'employee':emp.name},['working_shift']) 
             assigned_shift = frappe.db.sql("""select shift from `tabShift Assignment`
                         where employee = %s and %s between from_date and to_date""", (emp.name, preday), as_dict=True)
@@ -58,97 +65,107 @@ def fetch_att_test(from_date,to_date):
                     attendance.submit()
                     frappe.db.commit()
             else:
-                url = 'http://182.72.89.102/cosec/api.svc/v2/attendance-daily?action=get;field-name=userid,ProcessDate,firsthalf,\
-                        secondhalf,punch1,punch2,workingshift,shiftstart,shiftend,latein,earlyout,worktime,overtime;date-range=%s-%s;range=user;id=%s;format=xml' % (day,day,emp.name) 
-                r = requests.get(url, auth=('sa', 'matrixx'))
-                if "No records found" in r.content:
-                    attendance_id = frappe.db.exists("Attendance", {
-                            "employee": emp.name, "attendance_date": preday,"docstatus":1})
-                    if attendance_id:
-                        pass
-                    else:            
-                        attendance = frappe.new_doc("Attendance")
-                        attendance.update({
-                            "employee": emp.name,
-                            "attendance_date": preday,
-                            "status": 'Absent',
-                            "late_in" : "0:00:00",
-                            "early_out" : "0:00:00",
-                            "working_shift" : working_shift,
-                            "work_time": "0:00:00",
-                            "overtime":"0:00:00"
-                        })
-                        attendance.save(ignore_permissions=True)
-                        attendance.submit()
-                        frappe.db.commit() 
-                else: 
-                    if not "failed: 0010102003" in r.content:  
-                        root = ET.fromstring(r.content)
-                        for att in root.findall('attendance-daily'):
-                            userid = att.find('UserID').text
-                            in_time = att.find('Punch1').text
-                            out_time = att.find('Punch2').text
-                            first_half_status = att.find('firsthalf').text
-                            second_half_status = att.find('secondhalf').text
-                            date = datetime.strptime((att.find('ProcessDate').text.replace("/","")), "%d%m%Y").date()
-                            date_f = date.strftime("%Y-%m-%d")
-                            if flt(att.find('WorkTime').text) > 1440:
-                                work_time = timedelta(minutes=flt('1400'))
-                            else:
-                                work_time = timedelta(minutes=flt(att.find('WorkTime').text)) 
-                            over_time = timedelta(minutes=flt(att.find('Overtime').text))
-                            late_in = timedelta(minutes=flt(att.find('LateIn').text))
-                            early_out = timedelta(minutes=flt(att.find('EarlyOut').text))
-                            attendance_id = frappe.db.exists("Attendance", {
-                                "employee": emp.name, "attendance_date": date_f,"docstatus":1})
-                            if out_time:
-                                out_time_f = datetime.strptime(out_time, "%d/%m/%Y %H:%M:%S")
-                            if in_time:    
-                                in_time_f = datetime.strptime(in_time, "%d/%m/%Y %H:%M:%S")
-                            if in_time and out_time:
-                                work_time = out_time_f - in_time_f     
-                            wt_seconds = work_time.total_seconds() // 60
-                            if wt_seconds > 1440:
-                                work_time = timedelta(minutes=flt('1400'))    
-                            if work_time >= timedelta(hours=4):
-                                if work_time < timedelta(hours=7,minutes=45):
-                                    status = 'Half Day'
-                                else:    
-                                    status = 'Present'
-                            else:
-                                status = 'Absent'     
-                            if attendance_id:
-                                attendance = frappe.get_doc(
-                                    "Attendance", attendance_id)
-                                attendance.out_time = out_time
-                                attendance.in_time = in_time
-                                attendance.status = status
-                                attendance.first_half_status = first_half_status
-                                attendance.second_half_status = second_half_status
-                                attendance.late_in = late_in
-                                attendance.early_out = early_out
-                                attendance.working_shift = working_shift
-                                attendance.work_time = work_time
-                                attendance.overtime = over_time
-                                attendance.db_update()
-                                frappe.db.commit()
-                            else:
-                                attendance = frappe.new_doc("Attendance")
-                                attendance.update({
-                                    "employee": emp.name,
-                                    "attendance_date": date_f,
-                                    "status": status,
-                                    "in_time": in_time,
-                                    "late_in" : late_in,
-                                    "early_out" : early_out,
-                                    "working_shift" : working_shift,
-                                    "out_time": out_time,
-                                    "work_time": work_time,
-                                    "overtime":over_time
-                                })
-                                attendance.save(ignore_permissions=True)
-                                attendance.submit()
-                                frappe.db.commit() 
+                try:
+                    url = 'http://182.72.89.102/cosec/api.svc/v2/attendance-daily?action=get;field-name=userid,ProcessDate,firsthalf,\
+                            secondhalf,punch1,punch2,workingshift,shiftstart,shiftend,latein,earlyout,worktime,overtime;date-range=%s-%s;range=user;id=%s;format=xml' % (day,day,emp.name) 
+                    r = requests.get(url, auth=('sa', 'matrixx'))
+                    if "No records found" in r.content:
+                        attendance_id = frappe.db.exists("Attendance", {
+                                "employee": emp.name, "attendance_date": preday,"docstatus":1})
+                        if attendance_id:
+                            pass
+                        else:            
+                            attendance = frappe.new_doc("Attendance")
+                            attendance.update({
+                                "employee": emp.name,
+                                "attendance_date": preday,
+                                "status": 'Absent',
+                                "late_in" : "0:00:00",
+                                "early_out" : "0:00:00",
+                                "working_shift" : working_shift,
+                                "work_time": "0:00:00",
+                                "overtime":"0:00:00"
+                            })
+                            attendance.save(ignore_permissions=True)
+                            attendance.submit()
+                            frappe.db.commit() 
+                    else: 
+                        if not "failed: 0010102003" in r.content:  
+                            root = ET.fromstring(r.content)
+                            for att in root.findall('attendance-daily'):
+                                userid = att.find('UserID').text
+                                in_time = att.find('Punch1').text
+                                out_time = att.find('Punch2').text
+                                first_half_status = att.find('firsthalf').text
+                                second_half_status = att.find('secondhalf').text
+                                date = datetime.strptime((att.find('ProcessDate').text.replace("/","")), "%d%m%Y").date()
+                                date_f = date.strftime("%Y-%m-%d")
+                                if flt(att.find('WorkTime').text) > 1440:
+                                    work_time = timedelta(minutes=flt('1400'))
+                                else:
+                                    work_time = timedelta(minutes=flt(att.find('WorkTime').text)) 
+                                over_time = timedelta(minutes=flt(att.find('Overtime').text))
+                                late_in = timedelta(minutes=flt(att.find('LateIn').text))
+                                early_out = timedelta(minutes=flt(att.find('EarlyOut').text))
+                                attendance_id = frappe.db.exists("Attendance", {
+                                    "employee": emp.name, "attendance_date": date_f,"docstatus":1})
+                                if out_time:
+                                    out_time_f = datetime.strptime(out_time, "%d/%m/%Y %H:%M:%S")
+                                if in_time:    
+                                    in_time_f = datetime.strptime(in_time, "%d/%m/%Y %H:%M:%S")
+                                if in_time and out_time:
+                                    work_time = out_time_f - in_time_f     
+                                wt_seconds = work_time.total_seconds() // 60
+                                if wt_seconds > 1440:
+                                    work_time = timedelta(minutes=flt('1400'))    
+                                if work_time >= timedelta(hours=4):
+                                    if work_time < timedelta(hours=7,minutes=45):
+                                        status = 'Half Day'
+                                    else:    
+                                        status = 'Present'
+                                else:
+                                    status = 'Absent'     
+                                if attendance_id:
+                                    attendance = frappe.get_doc(
+                                        "Attendance", attendance_id)
+                                    attendance.out_time = out_time
+                                    attendance.in_time = in_time
+                                    attendance.status = status
+                                    attendance.first_half_status = first_half_status
+                                    attendance.second_half_status = second_half_status
+                                    attendance.late_in = late_in
+                                    attendance.early_out = early_out
+                                    attendance.working_shift = working_shift
+                                    attendance.work_time = work_time
+                                    attendance.overtime = over_time
+                                    attendance.db_update()
+                                    frappe.db.commit()
+                                else:
+                                    attendance = frappe.new_doc("Attendance")
+                                    attendance.update({
+                                        "employee": emp.name,
+                                        "attendance_date": date_f,
+                                        "status": status,
+                                        "in_time": in_time,
+                                        "late_in" : late_in,
+                                        "early_out" : early_out,
+                                        "working_shift" : working_shift,
+                                        "out_time": out_time,
+                                        "work_time": work_time,
+                                        "overtime":over_time
+                                    })
+                                    attendance.save(ignore_permissions=True)
+                                    attendance.submit()
+                                    frappe.db.commit() 
+                except Exception as e:
+                    frappe.msgprint(_("Connection Failed,Kindly check Matrix Server is Up"))
+                    break          
+
+
+@frappe.whitelist()
+def fetch_att_prev():
+    prev_day = add_days(today(),-1)
+    fetch_att_test(prev_day,prev_day)
 
 @frappe.whitelist()
 def test():
@@ -228,10 +245,10 @@ def fetch_att():
                         userid = att.find('UserID').text
                         in_time = att.find('Punch1').text
                         out_time = att.find('Punch2').text
-                        first_half_status = att.find('firsthalf').text
-                        second_half_status = att.find('secondhalf').text
                         date = datetime.strptime((att.find('ProcessDate').text.replace("/","")), "%d%m%Y").date()
                         date_f = date.strftime("%Y-%m-%d")
+                        first_half_status = att.find('firsthalf').text
+                        second_half_status = att.find('secondhalf').text
                         if flt(att.find('WorkTime').text) > 1440:
                                 work_time = timedelta(minutes=flt('1400'))
                         else:
@@ -262,7 +279,7 @@ def fetch_att():
                                 "Attendance", attendance_id)
                             attendance.out_time = out_time
                             attendance.in_time = in_time
-                            attendance.status = status
+                            attendance.status = status 
                             attendance.first_half_status = first_half_status
                             attendance.second_half_status = second_half_status
                             attendance.late_in = late_in
@@ -299,8 +316,8 @@ def fetch_employee():
     root = ET.fromstring(r.content)
     for emp in root.findall('user'):
         reference_code = emp.find('reference-code').text
-        if reference_code == "1309":
-            if not frappe.db.exists("Employee","1309"):
+        if reference_code == "1319":
+            if not frappe.db.exists("Employee",reference_code):
                 employee = frappe.new_doc("Employee")
                 employee.update({
                     "employee_name": emp.find('name').text,
@@ -361,7 +378,8 @@ def send_birthday_wish():
             users = [u.email_id or u.name for u in get_enabled_system_users()]
         for e in birthdays:
             age = calculate_age(e.date_of_birth)
-            args = dict(employee=e.employee_name,age=age,wish=wish['wish'],company=frappe.defaults.get_defaults().company)
+            print e
+            args = dict(employee=e.employee_name,age=age,wish=wish['wish'],company=frappe.defaults.get_defaults().company,photo=e.image)
             # frappe.sendmail(recipients=filter(lambda u: u not in (e.company_email, e.personal_email, e.user_id), users),
             frappe.sendmail(recipients=['sivaranjani.s@voltechgroup.com'],
                 subject=_("Birthday Reminder for {0}").format(e.employee_name),
@@ -375,7 +393,7 @@ def calculate_age(dtob):
 
 def get_employees_who_are_born_today():
     """Get Employee properties whose birthday is today."""
-    return frappe.db.sql("""select name,date_of_birth, personal_email, company_email, user_id, employee_name
+    return frappe.db.sql("""select name,date_of_birth, personal_email, company_email, user_id, employee_name,image
         from tabEmployee where day(date_of_birth) = day(%(date)s)
         and month(date_of_birth) = month(%(date)s)
         and status = 'Active'""", {"date": today()}, as_dict=True)    
@@ -581,17 +599,17 @@ def in_punch_alert():
         if emp.name not in employees_list:
             skip_attendance = validate_if_attendance_not_applicable(emp.name,day)
             if not skip_attendance:
-                frappe.sendmail(
-                    recipients=['sivaranjani.s@voltechgroup.com'],
-                    subject='Missed IN Punch Alert for %s' +
-                    formatdate(today()),
-                    message=""" 
-                    <h3>Missed In Punch Alert</h3>
-                    <p>Dear %s,</p>
-                    <h4>Info:</h4>
-                    <p>This is the reminder for Missed In Punch for today %s</p>
-                    """ % (frappe.get_value("Employee",emp.name,"employee_name"),formatdate(day))
-                    )    
+                # frappe.sendmail(
+                #     recipients=['sivaranjani.s@voltechgroup.com'],
+                #     subject='Missed IN Punch Alert for %s' +
+                #     formatdate(today()),
+                #     message=""" 
+                #     <h3>Missed In Punch Alert</h3>
+                #     <p>Dear %s,</p>
+                #     <h4>Info:</h4>
+                #     <p>This is the reminder for Missed In Punch for today %s</p>
+                #     """ % (frappe.get_value("Employee",emp.name,"employee_name"),formatdate(day))
+                #     )    
                 att = frappe.db.exists("Attendance",{"employee":emp.name,"attendance_date":day})
                 if not att:
                     attendance = frappe.new_doc("Attendance")
@@ -622,18 +640,18 @@ def out_punch_alert():
             att_record = frappe.db.sql("""select name from `tabAttendance`
             where employee = %s and in_time > '0' and out_time is null and attendance_date = %s
             and docstatus = 1""", (emp.name, day), as_dict=True)
-            if att_record:
-                frappe.sendmail(
-                    recipients=['sivaranjani.s@voltechgroup.com'],
-                    subject='Missed Out Punch Alert for %s' +
-                    formatdate(today()),
-                    message=""" 
-                    <h3>Missed Out Punch Alert</h3>
-                    <p>Dear %s,</p>
-                    <h4>Info:</h4>
-                    <p>This is the reminder for Missed Out Punch for today %s</p>
-                    """ % (frappe.get_value("Employee",emp.name,"employee_name"),formatdate(day))
-                    )     
+            # if att_record:
+            #     frappe.sendmail(
+            #         recipients=['sivaranjani.s@voltechgroup.com'],
+            #         subject='Missed Out Punch Alert for %s' +
+            #         formatdate(today()),
+            #         message=""" 
+            #         <h3>Missed Out Punch Alert</h3>
+            #         <p>Dear %s,</p>
+            #         <h4>Info:</h4>
+            #         <p>This is the reminder for Missed Out Punch for today %s</p>
+            #         """ % (frappe.get_value("Employee",emp.name,"employee_name"),formatdate(day))
+            #         )     
 
 @frappe.whitelist()
 def continuous_absentees():
@@ -731,8 +749,8 @@ def calculate_comp_off():
     #                 })
     #                 coff.save(ignore_permissions=True)
     #                 frappe.db.commit()
-    from_date = (datetime.strptime('2019-01-25', '%Y-%m-%d')).date()
-    to_date = (datetime.strptime('2019-02-24', '%Y-%m-%d')).date()
+    from_date = (datetime.strptime('2019-03-25', '%Y-%m-%d')).date()
+    to_date = (datetime.strptime('2019-04-24', '%Y-%m-%d')).date()
     for preday in daterange(from_date,to_date):
         employee = frappe.db.sql("""select name,employee_name,department,designation,category from `tabEmployee`
                             where status ="Active" and coff_eligible=1 """, as_dict=True)
@@ -766,11 +784,11 @@ def calculate_comp_off():
 def update_comp_off(doc,method):
     emp = doc.employee
     preday = doc.comp_off_date
-    calculate_ot(emp,preday,doc.hours)
+    ot = doc.hours.split(":")
+    ot = timedelta(hours =cint(ot[0]),minutes=cint(ot[1]))
+    calculate_ot(emp,preday,ot)
 
 def calculate_ot(emp,preday,ot):
-    ot = ot.split(":")
-    ot = timedelta(hours =cint(ot[0]),minutes=cint(ot[1]))
     pre = []
     ot_time = []
     pre.append(preday)
@@ -828,6 +846,7 @@ def get_coff(employee):
     t_hours = 0
     if frappe.db.exists("Comp Off Details",{"employee":employee}):
         coff_hours = frappe.get_value("Comp Off Details",{"employee":employee},["total_hours"])
+        frappe.errprint(coff_hours)
         # minutes = (coff_hours%3600) // 60
         return coff_hours
     else:
@@ -890,7 +909,7 @@ def att_adjust(employee,attendance_date,name,in_time,out_time,status_p,status_a,
                 }) 
             if att.status == 'Half Day':
                 att.update({
-                    "status":"Present",
+                    # "status":"Present",
                     "first_half_status":"PR",
                     "admin_approved_status": "First Half Present",
                     "in_time": itime,
@@ -909,7 +928,6 @@ def att_adjust(employee,attendance_date,name,in_time,out_time,status_p,status_a,
         elif att and status_second_half_present == "1":
             if att.status == 'Present':
                 att.update({
-                    "status":"Present",
                     "second_half_status":"PR",
                     "admin_approved_status": "Second Half Present",
                     "in_time": itime,
@@ -917,7 +935,6 @@ def att_adjust(employee,attendance_date,name,in_time,out_time,status_p,status_a,
                 }) 
             if att.status == 'Half Day':
                 att.update({
-                    "status":"Present",
                     "second_half_status":"PR",
                     "admin_approved_status": "Second Half Present",
                     "in_time": itime,
@@ -950,8 +967,8 @@ def att_adjust(employee,attendance_date,name,in_time,out_time,status_p,status_a,
                 }) 
             if att.status == 'Absent':
                 att.update({
-                    "first_half_status":"PR",
-                    "admin_approved_status": "First Half Present",
+                    "first_half_status":"AB",
+                    "admin_approved_status": "First Half Absent",
                     "in_time": itime,
                     "out_time": otime
                 })     
@@ -994,101 +1011,121 @@ def att_adjust(employee,attendance_date,name,in_time,out_time,status_p,status_a,
 
 @frappe.whitelist()
 def updated_att_adjust():
-    attendance = frappe.db.sql(""" select name from `tabAttendance` where docstatus =1 and attendance_date between '2019-02-26' and '2019-02-26'  """, as_dict = 1)
+    attendance = frappe.db.sql("""select name from `tabAttendance` where docstatus =1 and attendance_date between '2019-03-25' and '2019-04-24'  """, as_dict = 1)
     for a in attendance:
         att = frappe.get_doc("Attendance",a.name)
-        if att.admin_approved_status == "Present":
+        admin_approved_status = att.admin_approved_status
+        print att
+        if att and admin_approved_status == "Present":
             att.update({
-                "status":"Present"
+                "status":"Present",
+                "first_half_status":"PR",
+                "second_half_status":"PR",
+                "admin_approved_status": "Present",
             })
             att.save(ignore_permissions=True)
             frappe.db.commit()
-        elif att.admin_approved_status == "Absent":
+        elif att and admin_approved_status == "Absent":
             att.update({
-                "status":"Absent"
+                "status":"Absent",
+                "first_half_status":"AB",
+                "second_half_status":"AB",
+                "admin_approved_status": "Absent",
             })
             att.save(ignore_permissions=True)
             frappe.db.commit()
-        elif att.admin_approved_status == "PH":
+        elif att and admin_approved_status == "PH":
             att.update({
-                "status":"Absent"
+                "status":"Absent",
+                "admin_approved_status": "PH",
             })
             att.save(ignore_permissions=True)
             frappe.db.commit()
-        elif att.admin_approved_status == "WO":
+        elif att and admin_approved_status == "WO":
             att.update({
-                "status":"Absent"
+                "status":"Absent",
+                "admin_approved_status": "WO"
             })
             att.save(ignore_permissions=True)
             frappe.db.commit()
-        elif att.admin_approved_status == "First Half Present":
+        elif att and admin_approved_status == "First Half Present":
             if att.status == 'Present':
                 att.update({
                     "status":"Present",
-                    "first_half_status":"PR"
+                    "first_half_status":"PR",
+                    "admin_approved_status": "First Half Present"
                 }) 
-            elif att.status == 'Half Day':
+            if att.status == 'Half Day' and admin_approved_status == "First Half Present":
                 att.update({
-                    "status":"Present",
-                    "first_half_status":"PR"
+                    # "status":"Present",
+                    "first_half_status":"PR",
+                    "admin_approved_status": "First Half Present"
                 }) 
-            elif att.status == 'Absent':
+            if att.status == 'Absent' and admin_approved_status == "First Half Present":
                 att.update({
                     "status":"Half Day",
-                    "first_half_status":"PR"
+                    "first_half_status":"PR",
+                    "admin_approved_status": "First Half Present"
                 })     
             att.save(ignore_permissions=True)
-            frappe.db.commit()  
-        elif att.admin_approved_status == "Second Half Present":
+            frappe.db.commit()       
+        elif att and admin_approved_status == "Second Half Present":
             if att.status == 'Present':
                 att.update({
-                    "status":"Present",
-                    "second_half_status":"PR"
+                    "second_half_status":"PR",
+                    "admin_approved_status": "Second Half Present"
                 }) 
-            elif att.status == 'Half Day':
+            if att.status == 'Half Day' and admin_approved_status == "Second Half Present":
                 att.update({
-                    "status":"Present",
-                    "second_half_status":"PR"
+                    "second_half_status":"PR",
+                    "admin_approved_status": "Second Half Present"
                 }) 
-            elif att.status == 'Absent':
+            if att.status == 'Absent' and admin_approved_status == "Second Half Present":
                 att.update({
                     "status":"Half Day",
-                    "second_half_status":"PR"
+                    "second_half_status":"PR",
+                    "admin_approved_status": "Second Half Present"
+                })
+            att.save(ignore_permissions=True)
+            frappe.db.commit() 
+        elif att and admin_approved_status == "First Half Absent":
+            if att.status == 'Present' and admin_approved_status == "First Half Absent":
+                att.update({
+                    "status":'Half Day',
+                    "first_half_status":"AB",
+                    "admin_approved_status": "First Half Absent"
+                }) 
+            if att.status == 'Half Day' and admin_approved_status == "First Half Absent":
+                att.update({
+                    "first_half_status":"AB",
+                    "admin_approved_status": "First Half Absent"
+                }) 
+            if att.status == 'Absent' and admin_approved_status == "First Half Absent":
+                att.update({
+                    "first_half_status":"AB",
+                    "admin_approved_status": "First Half Absent",
                 })     
             att.save(ignore_permissions=True)
             frappe.db.commit()     
-        elif att.admin_approved_status == "First Half Absent":
-            if att.status == 'Present':
+        elif att and admin_approved_status == "Second Half Absent":
+            if att.status == 'Present' and admin_approved_status == "Second Half Absent":
                 att.update({
-                    "first_half_status":"AB"
+                    "status":'Half Day',
+                    "second_half_status":"AB",
+                    "admin_approved_status": "Second Half Absent",
                 }) 
-            elif att.status == 'Half Day':
+            if att.status == 'Half Day' and admin_approved_status == "Second Half Absent":
                 att.update({
-                    "first_half_status":"AB"
-                })  
-            elif att.status == 'Absent':
+                    "second_half_status":"AB",
+                    "admin_approved_status": "Second Half Absent",
+                }) 
+            if att.status == 'Absent' and admin_approved_status == "Second Half Absent":
                 att.update({
-                    "first_half_status":"AB"
+                    "second_half_status":"AB",
+                    "admin_approved_status": "Second Half Absent",
                 })     
             att.save(ignore_permissions=True)
-            frappe.db.commit() 
-        elif att.admin_approved_status == "Second Half Absent":
-            if att.status == 'Present':
-                att.update({
-                    "second_half_status":"AB"
-                }) 
-            elif att.status == 'Half Day':
-                att.update({
-                    "second_half_status":"AB"
-                })  
-            elif att.status == 'Absent':
-                att.update({
-                    "second_half_status":"AB"
-                })     
-            att.save(ignore_permissions=True)
-            frappe.db.commit()
-            print att.status                
-    return True
+            frappe.db.commit()                             
 
 
 @frappe.whitelist()
@@ -1124,98 +1161,131 @@ def bulk_att_adjust(employee,from_date,to_date,status):
 @frappe.whitelist()
 def fetch_att_temp():
     from_date = (datetime.strptime('2019-02-25', '%Y-%m-%d')).date()
-    to_date = (datetime.strptime('2019-03-24', '%Y-%m-%d')).date()
-    emp = '1208'
+    to_date = (datetime.strptime('2019-04-24', '%Y-%m-%d')).date()
+    emp = '1040'
     for preday in daterange(from_date,to_date):
         day = preday.strftime("%d%m%Y")
-        url = 'http://10.19.8.248/cosec/api.svc/v2/attendance-daily?action=get;field-name=userid,ProcessDate,firsthalf,\
-                            secondhalf,punch1,punch2,workingshift,shiftstart,shiftend,latein,earlyout,worktime,overtime;date-range=%s-%s;range=user;id=1208;format=xml' % (day,day) 
-        r = requests.get(url, auth=('sa', 'matrixx'))
-        
-        if "No records found" in r.content:
-            attendance_id = frappe.db.exists("Attendance", {
-                    "employee": emp, "attendance_date": preday,"docstatus":1})
-            if attendance_id:
-                pass
+        exc = frappe.db.get_list("Auto Present Employees",fields=['employee'])
+        auto_present_list = []
+        for e in exc:
+            auto_present_list.append(e.employee)
+        employees = frappe.get_all('Employee',{'status':'Active','date_of_joining':('<=',preday)})
+        for emp in employees:
+            working_shift = frappe.db.get_value("Employee", {'employee':emp.name},['working_shift']) 
+            assigned_shift = frappe.db.sql("""select shift from `tabShift Assignment`
+                        where employee = %s and %s between from_date and to_date""", (emp.name, preday), as_dict=True)
+            if assigned_shift:
+                working_shift = assigned_shift[0]['shift']
+            if emp.name in auto_present_list:
+                doc = frappe.get_doc("Employee",emp.name)
+                attendance = frappe.db.exists("Attendance", {"employee": doc.employee, "attendance_date": preday})
+                if attendance:
+                    frappe.db.set_value("Attendance",attendance,"status","Present")
+                    frappe.db.commit()
+                else:
+                    attendance = frappe.new_doc("Attendance")
+                    attendance.employee = doc.employee
+                    attendance.employee_name = doc.employee_name
+                    attendance.status = "Present"
+                    attendance.attendance_date = preday
+                    # attendance.company = doc.company
+                    attendance.working_shift = working_shift,
+                    attendance.late_in = "00:00:00"
+                    attendance.work_time = "00:00:00"
+                    attendance.early_out = "00:00:00"
+                    attendance.overtime = "00:00:00"
+                    attendance.save(ignore_permissions=True)
+                    attendance.submit()
+                    frappe.db.commit()
             else:            
-                attendance = frappe.new_doc("Attendance")
-                attendance.update({
-                    "employee": emp,
-                    "attendance_date": preday,
-                    "status": 'Absent',
-                    "late_in" : "0:00:00",
-                    "early_out" : "0:00:00",
-                    "working_shift" : frappe.get_value("Employee",emp,"working_shift"),
-                    "work_time": "0:00:00",
-                    "overtime":"0:00:00"
-                })
-                attendance.save(ignore_permissions=True)
-                attendance.submit()
-                frappe.db.commit() 
-        else: 
-            if not "failed: 0010102003" in r.content:
-                root = ET.fromstring(r.content)
-                for att in root.findall('attendance-daily'):
-                    userid = att.find('UserID').text
-                    in_time = att.find('Punch1').text
-                    out_time = att.find('Punch2').text
-                    first_half_status = att.find('firsthalf').text
-                    second_half_status = att.find('secondhalf').text
-                    date = datetime.strptime((att.find('ProcessDate').text.replace("/","")), "%d%m%Y").date()
-                    date_f = date.strftime("%Y-%m-%d")
-                    work_time = timedelta(minutes=flt(att.find('WorkTime').text))
-                    over_time = timedelta(minutes=flt(att.find('Overtime').text))
-                    late_in = timedelta(minutes=flt(att.find('LateIn').text))
-                    early_out = timedelta(minutes=flt(att.find('EarlyOut').text))
-                    working_shift = att.find('WorkingShift').text
-                    print(work_time)
+                url = 'http://182.72.89.102/cosec/api.svc/v2/attendance-daily?action=get;field-name=userid,ProcessDate,firsthalf,\
+                                    secondhalf,punch1,punch2,workingshift,shiftstart,shiftend,latein,earlyout,worktime,overtime;date-range=%s-%s;range=user;id=1040;format=xml' % (day,day) 
+                r = requests.get(url, auth=('sa', 'matrixx'))
+                
+                if "No records found" in r.content:
                     attendance_id = frappe.db.exists("Attendance", {
-                        "employee": emp, "attendance_date": date_f,"docstatus":1})
-                    if out_time:
-                        out_time_f = datetime.strptime(out_time, "%d/%m/%Y %H:%M:%S")
-                    if in_time:    
-                        in_time_f = datetime.strptime(in_time, "%d/%m/%Y %H:%M:%S")
-                    if in_time and out_time:
-                        work_time = out_time_f - in_time_f    
-                    if work_time >= timedelta(hours=4) :
-                        if work_time < timedelta(hours=7,minutes=45):
-                            status = 'Half Day'
-                        else:    
-                            status = 'Present'
-                    else:
-                        status = 'Absent'   
+                            "employee": emp, "attendance_date": preday,"docstatus":1})
                     if attendance_id:
-                        attendance = frappe.get_doc(
-                            "Attendance", attendance_id)
-                        attendance.out_time = out_time
-                        attendance.in_time = in_time
-                        attendance.status = status
-                        attendance.first_half_status = first_half_status
-                        attendance.second_half_status = second_half_status
-                        attendance.late_in = late_in
-                        attendance.early_out = early_out
-                        attendance.working_shift = working_shift
-                        attendance.work_time = work_time
-                        attendance.overtime = over_time
-                        attendance.db_update()
-                        frappe.db.commit()
-                    else:
+                        pass
+                    else:            
                         attendance = frappe.new_doc("Attendance")
                         attendance.update({
                             "employee": emp,
-                            "attendance_date": date_f,
-                            "status": status,
-                            "in_time": in_time,
-                            "late_in" : late_in,
-                            "early_out" : early_out,
-                            "working_shift" : working_shift,
-                            "out_time": out_time,
-                            "work_time": work_time,
-                            "overtime":over_time
+                            "attendance_date": preday,
+                            "status": 'Absent',
+                            "late_in" : "0:00:00",
+                            "early_out" : "0:00:00",
+                            "working_shift" : frappe.get_value("Employee",emp,"working_shift"),
+                            "work_time": "0:00:00",
+                            "overtime":"0:00:00"
                         })
                         attendance.save(ignore_permissions=True)
                         attendance.submit()
-                        frappe.db.commit()
+                        frappe.db.commit() 
+                else: 
+                    if not "failed: 0010102003" in r.content:
+                        root = ET.fromstring(r.content)
+                        for att in root.findall('attendance-daily'):
+                            userid = att.find('UserID').text
+                            in_time = att.find('Punch1').text
+                            out_time = att.find('Punch2').text
+                            first_half_status = att.find('firsthalf').text
+                            second_half_status = att.find('secondhalf').text
+                            date = datetime.strptime((att.find('ProcessDate').text.replace("/","")), "%d%m%Y").date()
+                            date_f = date.strftime("%Y-%m-%d")
+                            work_time = timedelta(minutes=flt(att.find('WorkTime').text))
+                            over_time = timedelta(minutes=flt(att.find('Overtime').text))
+                            late_in = timedelta(minutes=flt(att.find('LateIn').text))
+                            early_out = timedelta(minutes=flt(att.find('EarlyOut').text))
+                            working_shift = att.find('WorkingShift').text
+                            print(work_time)
+                            attendance_id = frappe.db.exists("Attendance", {
+                                "employee": emp, "attendance_date": date_f,"docstatus":1})
+                            if out_time:
+                                out_time_f = datetime.strptime(out_time, "%d/%m/%Y %H:%M:%S")
+                            if in_time:    
+                                in_time_f = datetime.strptime(in_time, "%d/%m/%Y %H:%M:%S")
+                            if in_time and out_time:
+                                work_time = out_time_f - in_time_f    
+                            if work_time >= timedelta(hours=4) :
+                                if work_time < timedelta(hours=7,minutes=45):
+                                    status = 'Half Day'
+                                else:    
+                                    status = 'Present'
+                            else:
+                                status = 'Absent'   
+                            if attendance_id:
+                                attendance = frappe.get_doc(
+                                    "Attendance", attendance_id)
+                                attendance.out_time = out_time
+                                attendance.in_time = in_time
+                                attendance.status = status
+                                attendance.first_half_status = first_half_status
+                                attendance.second_half_status = second_half_status
+                                attendance.late_in = late_in
+                                attendance.early_out = early_out
+                                attendance.working_shift = working_shift
+                                attendance.work_time = work_time
+                                attendance.overtime = over_time
+                                attendance.db_update()
+                                frappe.db.commit()
+                            else:
+                                attendance = frappe.new_doc("Attendance")
+                                attendance.update({
+                                    "employee": emp,
+                                    "attendance_date": date_f,
+                                    "status": status,
+                                    "in_time": in_time,
+                                    "late_in" : late_in,
+                                    "early_out" : early_out,
+                                    "working_shift" : working_shift,
+                                    "out_time": out_time,
+                                    "work_time": work_time,
+                                    "overtime":over_time
+                                })
+                                attendance.save(ignore_permissions=True)
+                                attendance.submit()
+                                frappe.db.commit()
                  
 
 @frappe.whitelist()
@@ -1226,7 +1296,7 @@ def shift_assignment(employee,attendance_date,shift):
         shift = shift[0]
         if shift_assignment:
             sa = frappe.db.sql("""select name from `tabShift Assignment`
-                        where employee = %s and %s between from_date and to_date """, (employee, attendance_date), as_dict=True)
+                        where employee = %s and %s between from_date and to_date""", (employee, attendance_date), as_dict=True)
             if sa:
                 for s in sa:
                     doc = frappe.get_doc("Shift Assignment",s)
@@ -1267,385 +1337,135 @@ def shift_assignment(employee,attendance_date,shift):
                 })
                 sa.save(ignore_permissions=True)
                 frappe.db.commit()
+        # update_att_from_shift(employee,attendance_date,shift)
+        if frappe.db.exists("Attendance", {
+                            "employee": employee, "attendance_date": attendance_date,"docstatus":1}): 
+            attendance_id = frappe.db.exists("Attendance", {
+                        "employee": employee, "attendance_date": attendance_date,"docstatus":1})    
+            if attendance_id:
+                attendance = frappe.get_doc(
+                    "Attendance", attendance_id)
+                shift_in_time = frappe.db.get_value("Working Shift",shift,"in_time")
+                shift_out_time = frappe.db.get_value("Working Shift",shift,"out_time")  
+                grace_in_time = frappe.db.get_value("Working Shift",shift,"grace_in_time")   
+                grace_out_time = frappe.db.get_value("Working Shift",shift,"grace_out_time")
+                work_time = over_time = late_in = early_out = "0:00:00"
+                shift_in_time += grace_in_time
+                shift_out_time -= grace_out_time
+                first_half_status = second_half_status  = ""
+                status = attendance.status 
+                if attendance.in_time:
+                    in_time = attendance.in_time
+                    dt = datetime.strptime(in_time, "%d/%m/%Y %H:%M:%S")
+                    from_time = dt.time()                          
+                    emp_in_time = timedelta(hours=from_time.hour,minutes=from_time.minute,seconds=from_time.second)
+                    #Check Movement Register
+                    if get_mr_in1(employee,attendance_date):
+                        mr_status_in = True
+                        emp_in_time = emp_in_time - get_mr_in1(employee,attendance_date)
+                    if emp_in_time > shift_in_time:
+                        first_half_status = 'AB'
+                        if second_half_status == "AB":
+                            status = "Absent"
+                        elif second_half_status == "PR":                   
+                            status = "Half Day"
+                        late_in = (emp_in_time - shift_in_time) + grace_in_time
+                    else:
+                        first_half_status = 'PR'
+                        if second_half_status == "AB":
+                            status = "Half Day"
+                        elif second_half_status == "PR":                   
+                            status = "Present"
+                        late_in = timedelta(seconds=0)
+
+                if attendance.out_time:
+                    if attendance.in_time:
+                        out_time = attendance.out_time
+                        dt = datetime.strptime(out_time, "%d/%m/%Y %H:%M:%S")
+                        end_time = dt.time()
+                        emp_out_time = timedelta(hours=end_time.hour,minutes=end_time.minute,seconds=end_time.second)
+                        #Check Movement Register
+                        if get_mr_out1(employee,attendance_date):
+                            mr_status_out = True
+                            emp_out_time = emp_out_time + get_mr_out1(employee,attendance_date)
+                        if emp_out_time < shift_out_time:
+                            second_half_status = 'AB'
+                            if first_half_status == "AB":
+                                status = "Absent"
+                            elif first_half_status == "PR":
+                                status = "Half Day"
+                            early_out = (shift_out_time - emp_out_time) - grace_out_time
+                        else:
+                            second_half_status = 'PR'
+                            if first_half_status == "AB":
+                                status = "Half Day"
+                            elif first_half_status == "PR":
+                                status = "Present"
+                            early_out = timedelta(seconds=0)  
+                if attendance.in_time and attendance.out_time:
+                    in_time = attendance.in_time
+                    out_time = attendance.out_time
+                    out_time_f = datetime.strptime(out_time, "%d/%m/%Y %H:%M:%S")
+                    in_time_f = datetime.strptime(in_time, "%d/%m/%Y %H:%M:%S")
+                    work_time = (out_time_f - in_time_f).total_seconds() // 60
+                    
+                    if work_time < 1440:
+                        work_time = timedelta(minutes=flt(work_time))
+                    else:
+                        work_time = timedelta(minutes=flt('1400')) 
+                    if emp_out_time > shift_out_time:
+                        over_time = (emp_out_time  - shift_out_time).total_seconds() // 60
+                        if over_time < 1440:
+                            over_time = timedelta(minutes=flt(over_time))
+                        else:
+                            over_time = timedelta(minutes=flt('1400'))                 
+                attendance.update({
+                    "status": status,
+                    "late_in" : late_in,
+                    "early_out" : early_out,
+                    "working_shift" : shift,
+                    "work_time": work_time,
+                    "overtime":over_time,
+                    "first_half_status": first_half_status,
+                    "second_half_status":second_half_status
+                })
+                frappe.errprint(status)
+                attendance.db_update()
+                frappe.db.commit()      
     return "OK" 
 
 
-@frappe.whitelist()
-def update_pm_manager(doc, method):
-    if doc.manager:
-        pmm = frappe.db.get_value("Performance Management Manager", {
-                                      "employee_code": doc.employee_code})
-        if pmm:
-            epmm = frappe.get_doc("Performance Management Manager", pmm)
-        else:
-            epmm = frappe.new_doc("Performance Management Manager")
-        epmm.update({
-            "employee_code": doc.employee_code,
-            "employee_code1": doc.employee_code,
-            "cost_code": doc.cost_code,
-            "department": doc.department,
-            "year_of_last_promotion": doc.year_of_last_promotion,
-            "business_unit": doc.business_unit,
-            "grade": doc.grade,
-            "employee_name": doc.employee_name,
-            "manager": doc.manager,
-            "hod": doc.hod,
-            "reviewer": doc.reviewer,
-            "designation": doc.designation,
-            "date_of_joining": doc.date_of_joining,
-            "appraisal_year": doc.appraisal_year,
-            "location": doc.location,
-            "no_of_promotion": doc.no_of_promotion,
-            "small_text_12": doc.small_text_12,
-            "small_text_14": doc.small_text_14,
-            "small_text_16": doc.small_text_16,
-            "small_text_18": doc.small_text_18,
-            "required__job_knowledge": doc.required__job_knowledge,
-            "training_required_to_enhance_job_knowledge": doc.training_required_to_enhance_job_knowledge,
-            "required_skills": doc.required_skills,
-            "training_required__to_enhance_skills_competencies": doc.training_required__to_enhance_skills_competencies
-        })
-        epmm.set('sales_target', [])
-        child = doc.sales_target
-        for c in child:
-            epmm.append("sales_target",{
-                "year": c.year,
-                "actual_targets": c.actual_targets,
-                "attained_targets": c.attained_targets
-            })
-        epmm.set('job_analysis', [])
-        child1 = doc.job_analysis
-        for c in child1:
-            epmm.append("job_analysis",{
-                "appraisee_remarks": c.appraisee_remarks
-            })
-        epmm.set('competency_assessment1', [])
-        child2 = doc.competency_assessment1
-        for c in child2:
-            epmm.append("competency_assessment1",{
-                "competency": c.competency,
-                "weightage": c.weightage,
-                "appraisee_weightage": c.appraisee_weightage,
-                "manager": c.appraisee_weightage
-            })
-        epmm.set('key_result_area', [])
-        child3 = doc.key_result_area
-        for c in child3:
-            epmm.append("key_result_area",{
-                "goal_setting_for_current_year": c.goal_setting_for_current_year,
-                "performance_measure": c.performance_measure,
-                "weightage_w_100": c.weightage_w_100,
-                "self_rating": c.self_rating,
-                "manager": c.self_rating,
-                "weightage": c.weightage,
-            })
-        epmm.set('key_results_area', [])
-        child4 = doc.key_results_area
-        for c in child4:
-            epmm.append("key_results_area",{
-                "goal_setting_for_last_year": c.goal_setting_for_last_year,
-                "performance_measure": c.performance_measure,
-                "weightage_w_100": c.weightage_w_100,
-                "self_rating": c.self_rating,
-                "weightage": c.weightage,
-            })
-        epmm.save(ignore_permissions=True)
-    else:
-        pmm = frappe.db.get_value("Performance Management HOD", {
-                                      "employee_code": doc.employee_code})
-        if pmm:
-            epmm = frappe.get_doc("Performance Management HOD", pmm)
-        else:
-            epmm = frappe.new_doc("Performance Management HOD")
-        epmm.update({
-            "employee_code": doc.employee_code,
-            "employee_code1": doc.employee_code,
-            "cost_code": doc.cost_code,
-            "department": doc.department,
-            "year_of_last_promotion": doc.year_of_last_promotion,
-            "business_unit": doc.business_unit,
-            "grade": doc.grade,
-            "employee_name": doc.employee_name,
-            "manager": doc.manager,
-            "hod": doc.hod,
-            "reviewer": doc.reviewer,
-            "designation": doc.designation,
-            "date_of_joining": doc.date_of_joining,
-            "appraisal_year": doc.appraisal_year,
-            "location": doc.location,
-            "no_of_promotion": doc.no_of_promotion,
-            "small_text_12": doc.small_text_12,
-            "small_text_14": doc.small_text_14,
-            "small_text_16": doc.small_text_16,
-            "small_text_18": doc.small_text_18,
-            "potential": "NA",
-            "performance": "NA",
-            "promotion": "NA",
-            "any_other_observations": "NA",
-            "required__job_knowledge": doc.required__job_knowledge,
-            "training_required_to_enhance_job_knowledge": doc.training_required_to_enhance_job_knowledge,
-            "required_skills": doc.required_skills,
-            "training_required__to_enhance_skills_competencies": doc.training_required__to_enhance_skills_competencies
-        })
-        epmm.set('sales_target', [])
-        child = doc.sales_target
-        for c in child:
-            epmm.append("sales_target",{
-                "year": c.year,
-                "actual_targets": c.actual_targets,
-                "attained_targets": c.attained_targets
-            })
-        epmm.set('job_analysis', [])
-        child1 = doc.job_analysis
-        for c in child1:
-            epmm.append("job_analysis",{
-                "appraisee_remarks": c.appraisee_remarks,
-                "appraiser_remarks": "NA"
-            })
-        epmm.set('competency_assessment1', [])
-        child2 = doc.competency_assessment1
-        for c in child2:
-            epmm.append("competency_assessment1",{
-                "competency": c.competency,
-                "weightage": c.weightage,
-                "appraisee_weightage": c.appraisee_weightage,
-                "manager": "NA",
-                "hod": c.appraisee_weightage
-            })
-        epmm.set('key_result_area', [])
-        child3 = doc.key_result_area
-        for c in child3:
-            epmm.append("key_result_area",{
-                "goal_setting_for_current_year": c.goal_setting_for_current_year,
-                "performance_measure": c.performance_measure,
-                "weightage_w_100": c.weightage_w_100,
-                "self_rating": c.self_rating,
-                "weightage": c.weightage,
-                "manager": "NA",
-                "hod": c.self_rating
-            })
-        epmm.set('key_results_area', [])
-        child4 = doc.key_results_area
-        for c in child4:
-            epmm.append("key_results_area",{
-                "goal_setting_for_last_year": c.goal_setting_for_last_year,
-                "performance_measure": c.performance_measure,
-                "weightage_w_100": c.weightage_w_100,
-                "weightage": c.weightage,
-                "self_rating": c.self_rating
-            })
-        epmm.set('employee_feedback', [])
-        # child5 = doc.employee_feedback
-        for c in range(5):
-            epmm.append("employee_feedback",{
-                "appraisee_remarks": "NA"
-            })
-        epmm.save(ignore_permissions=True)
+def get_mr_out1(emp,day):
+    from_time = to_time = 0
+    day = (datetime.strptime(str(day), '%Y-%m-%d')).date()
+    dt = datetime.combine(day, datetime.min.time())
+    mrs = frappe.db.sql("""select from_time,to_time from `tabMovement Register` where employee= '%s' and docstatus=1 and status='Approved' and from_time between '%s' and '%s' """ % (emp,dt,add_days(dt,1)),as_dict=True)
+    for mr in mrs:
+        from_time = mr.from_time
+        to_time = mr.to_time
+    out_time = frappe.get_value("Attendance",{"employee":emp,"attendance_date":day},["out_time"])  
+    if out_time:
+        att_out_time = datetime.strptime(out_time,'%d/%m/%Y %H:%M:%S')
+        if from_time:
+            if att_out_time >= (from_time + timedelta(minutes=-10)) :
+                return to_time - from_time
+
+def get_mr_in1(emp,day):
+    from_time = to_time = 0
+    day = (datetime.strptime(str(day), '%Y-%m-%d')).date()
+    dt = datetime.combine(day, datetime.min.time())
+    mrs = frappe.db.sql("""select from_time,to_time from `tabMovement Register` where employee= '%s' and docstatus=1 and status='Approved' and from_time between '%s' and '%s' """ % (emp,dt,add_days(dt,1)),as_dict=True)
+    for mr in mrs:
+        from_time = mr.from_time
+        to_time = mr.to_time
+    in_time = frappe.get_value("Attendance",{"employee":emp,"attendance_date":day},["in_time"])
+    if in_time:    
+        att_in_time = datetime.strptime(in_time,'%d/%m/%Y %H:%M:%S')
+        if from_time:
+            if att_in_time >= (from_time + timedelta(minutes=-10)):
+                return to_time - from_time
 
 
-
-@frappe.whitelist()
-def update_pm_hod(doc, method):
-    if doc.manager == frappe.session.user:
-        pmm = frappe.db.get_value("Performance Management HOD", {
-                                      "employee_code": doc.employee_code})
-        if pmm:
-            epmm = frappe.get_doc("Performance Management HOD", pmm)
-        else:
-            epmm = frappe.new_doc("Performance Management HOD")
-        epmm.update({
-            "employee_code": doc.employee_code,
-            "employee_code1": doc.employee_code,
-            "cost_code": doc.cost_code,
-            "department": doc.department,
-            "year_of_last_promotion": doc.year_of_last_promotion,
-            "business_unit": doc.business_unit,
-            "grade": doc.grade,
-            "employee_name": doc.employee_name,
-            "manager": doc.manager,
-            "hod": doc.hod,
-            "reviewer": doc.reviewer,
-            "designation": doc.designation,
-            "date_of_joining": doc.date_of_joining,
-            "appraisal_year": doc.appraisal_year,
-            "location": doc.location,
-            "no_of_promotion": doc.no_of_promotion,
-            "small_text_12": doc.small_text_12,
-            "small_text_14": doc.small_text_14,
-            "small_text_16": doc.small_text_16,
-            "small_text_18": doc.small_text_18,
-            "potential": doc.potential,
-            "performance": doc.performance,
-            "promotion": doc.promotion,
-            "any_other_observations": doc.any_other_observations,
-            "required__job_knowledge": doc.required__job_knowledge,
-            "training_required_to_enhance_job_knowledge": doc.training_required_to_enhance_job_knowledge,
-            "required_skills": doc.required_skills,
-            "training_required__to_enhance_skills_competencies": doc.training_required__to_enhance_skills_competencies
-        })
-        epmm.set('sales_target', [])
-        child = doc.sales_target
-        for c in child:
-            epmm.append("sales_target",{
-                "year": c.year,
-                "actual_targets": c.actual_targets,
-                "attained_targets": c.attained_targets
-            })
-        epmm.set('job_analysis', [])
-        child1 = doc.job_analysis
-        for c in child1:
-            epmm.append("job_analysis",{
-                "appraisee_remarks": c.appraisee_remarks,
-                "appraiser_remarks": c.appraiser_remarks
-            })
-        epmm.set('competency_assessment1', [])
-        child2 = doc.competency_assessment1
-        for c in child2:
-            epmm.append("competency_assessment1",{
-                "competency": c.competency,
-                "weightage": c.weightage,
-                "appraisee_weightage": c.appraisee_weightage,
-                "manager": c.manager,
-                "hod": c.manager
-            })
-        epmm.set('key_result_area', [])
-        child3 = doc.key_result_area
-        for c in child3:
-            epmm.append("key_result_area",{
-                "goal_setting_for_current_year": c.goal_setting_for_current_year,
-                "performance_measure": c.performance_measure,
-                "weightage_w_100": c.weightage_w_100,
-                "self_rating": c.self_rating,
-                "weightage": c.weightage,
-                "manager": c.manager,
-                "hod": c.manager
-            })
-        epmm.set('key_results_area', [])
-        child4 = doc.key_results_area
-        for c in child4:
-            epmm.append("key_results_area",{
-                "goal_setting_for_last_year": c.goal_setting_for_last_year,
-                "performance_measure": c.performance_measure,
-                "weightage_w_100": c.weightage_w_100,
-                "weightage": c.weightage,
-                "self_rating": c.self_rating
-            })
-        epmm.set('employee_feedback', [])
-        child5 = doc.employee_feedback
-        for c in child5:
-            epmm.append("employee_feedback",{
-                "appraisee_remarks": c.appraisee_remarks
-            })
-        epmm.save(ignore_permissions=True)
-        
-
-
-
-@frappe.whitelist()
-def update_pm_reviewer(doc, method):
-    if doc.hod == frappe.session.user:
-        pmm = frappe.db.get_value("Performance Management Reviewer", {
-                                      "employee_code": doc.employee_code})
-        if pmm:
-            epmm = frappe.get_doc("Performance Management Reviewer", pmm)
-        else:
-            epmm = frappe.new_doc("Performance Management Reviewer")
-        epmm.update({
-            "employee_code": doc.employee_code,
-            "employee_code1": doc.employee_code,
-            "cost_code": doc.cost_code,
-            "department": doc.department,
-            "year_of_last_promotion": doc.year_of_last_promotion,
-            "business_unit": doc.business_unit,
-            "grade": doc.grade,
-            "employee_name": doc.employee_name,
-            "manager": doc.manager,
-            "hod": doc.hod,
-            "reviewer": doc.reviewer,
-            "designation": doc.designation,
-            "date_of_joining": doc.date_of_joining,
-            "appraisal_year": doc.appraisal_year,
-            "location": doc.location,
-            "no_of_promotion": doc.no_of_promotion,
-            "small_text_12": doc.small_text_12,
-            "small_text_14": doc.small_text_14,
-            "small_text_16": doc.small_text_16,
-            "small_text_18": doc.small_text_18,
-            "potential": doc.potential,
-            "performance": doc.performance,
-            "promotion": doc.promotion,
-            "any_other_observations": doc.any_other_observations,
-            "potential_hod": doc.potential_hod,
-            "performance_hod": doc.performance_hod,
-            "promotion_hod": doc.promotion_hod,
-            "any_other_observations_hod": doc.any_other_observations_hod,
-            "required__job_knowledge": doc.required__job_knowledge,
-            "training_required_to_enhance_job_knowledge": doc.training_required_to_enhance_job_knowledge,
-            "required_skills": doc.required_skills,
-            "training_required__to_enhance_skills_competencies": doc.training_required__to_enhance_skills_competencies
-        })
-        epmm.set('sales_target', [])
-        child = doc.sales_target
-        for c in child:
-            epmm.append("sales_target",{
-                "year": c.year,
-                "actual_targets": c.actual_targets,
-                "attained_targets": c.attained_targets
-            })
-        epmm.set('job_analysis', [])
-        child1 = doc.job_analysis
-        for c in child1:
-            epmm.append("job_analysis",{
-                "appraisee_remarks": c.appraisee_remarks,
-                "appraiser_remarks": c.appraiser_remarks
-            })
-        epmm.set('competency_assessment1', [])
-        child2 = doc.competency_assessment1
-        for c in child2:
-            epmm.append("competency_assessment1",{
-                "competency": c.competency,
-                "weightage": c.weightage,
-                "appraisee_weightage": c.appraisee_weightage,
-                "appraiser_rating": c.manager,
-                "hod": c.hod,
-                "reviewer": c.hod
-            })
-        epmm.set('key_result_area', [])
-        child3 = doc.key_result_area
-        for c in child3:
-            epmm.append("key_result_area",{
-                "goal_setting_for_current_year": c.goal_setting_for_current_year,
-                "performance_measure": c.performance_measure,
-                "weightage_w_100": c.weightage_w_100,
-                "weightage": c.weightage,
-                "self_rating": c.self_rating,
-                "appraiser_rating_r": c.manager,
-                "hod": c.hod,
-                "reviewer": c.hod
-            })
-        epmm.set('key_results_area', [])
-        child4 = doc.key_results_area
-        for c in child4:
-            epmm.append("key_results_area",{
-                "goal_setting_for_last_year": c.goal_setting_for_last_year,
-                "performance_measure": c.performance_measure,
-                "weightage_w_100": c.weightage_w_100,
-            })
-        epmm.set('employee_feedback', [])
-        child5 = doc.employee_feedback
-        for c in child5:
-            epmm.append("employee_feedback",{
-                "appraisee_remarks": c.appraisee_remarks,
-                "hod": c.hod
-            })
-        # epmm.set('pm_observation_feedback', [])
-        # child5 = doc.pm_observation_feedback
-        # for c in child5:
-        #     epmm.append("pm_observation_feedback",{
-        #         "appraiser_reviewer": c.appraiser_reviewer,
-        #         "status": c.status
-        #     })
-        epmm.save(ignore_permissions=True)
 
 
         
@@ -1659,7 +1479,6 @@ def send_announcement(name):
     else:
         report_manager_doc = " "
     for i in range(1):
-        frappe.errprint("hi")
         content = """
         <h1><br></h1>
         <h1 align="center"><u><span style="font-size: 14px;">&nbsp;</span></u></h1>
@@ -1701,102 +1520,7 @@ def send_announcement(name):
 
 
 
-@frappe.whitelist()
-def update_hod():
-    self_list = ["PMS0076"]
-    for s in self_list:
-        doc = frappe.get_doc("Performance Management Self", s)
-        if doc.docstatus == 1 and doc.manager:
-            pmm = frappe.db.get_value("Performance Management Manager", {
-                                        "employee_code": doc.employee_code})
-            if pmm:
-                epmm = frappe.get_doc("Performance Management Manager", pmm)
-            else:
-                epmm = frappe.new_doc("Performance Management Manager")
-            epmm.update({
-                "employee_code": doc.employee_code,
-                "cost_code": doc.cost_code,
-                "department": doc.department,
-                "year_of_last_promotion": doc.year_of_last_promotion,
-                "business_unit": doc.business_unit,
-                "grade": doc.grade,
-                "employee_name": doc.employee_name,
-                "manager": doc.manager,
-                "hod": doc.hod,
-                "reviewer": doc.reviewer,
-                "designation": doc.designation,
-                "date_of_joining": doc.date_of_joining,
-                "appraisal_year": doc.appraisal_year,
-                "location": doc.location,
-                "no_of_promotion": doc.no_of_promotion,
-                "small_text_12": doc.small_text_12,
-                "small_text_14": doc.small_text_14,
-                "small_text_16": doc.small_text_16,
-                "small_text_18": doc.small_text_18,
-                # "potential": "NA",
-                # "performance": "NA",
-                # "promotion": "NA",
-                # "any_other_observations": "NA",
-                "required__job_knowledge": doc.required__job_knowledge,
-                "training_required_to_enhance_job_knowledge": doc.training_required_to_enhance_job_knowledge,
-                "required_skills": doc.required_skills,
-                "training_required__to_enhance_skills_competencies": doc.training_required__to_enhance_skills_competencies
-            })
-            epmm.set('sales_target', [])
-            child = doc.sales_target
-            for c in child:
-                epmm.append("sales_target",{
-                    "year": c.year,
-                    "actual_targets": c.actual_targets,
-                    "attained_targets": c.attained_targets
-                })
-            epmm.set('job_analysis', [])
-            child1 = doc.job_analysis
-            for c in child1:
-                epmm.append("job_analysis",{
-                    "appraisee_remarks": c.appraisee_remarks,
-                    # "appraiser_remarks": "NA"
-                })
-            epmm.set('competency_assessment1', [])
-            child2 = doc.competency_assessment1
-            for c in child2:
-                epmm.append("competency_assessment1",{
-                    "competency": c.competency,
-                    "weightage": c.weightage,
-                    "appraisee_weightage": c.appraisee_weightage,
-                    # "manager": "NA",
-                    # "hod": c.appraisee_weightage
-                })
-            epmm.set('key_result_area', [])
-            child3 = doc.key_result_area
-            for c in child3:
-                epmm.append("key_result_area",{
-                    "goal_setting_for_current_year": c.goal_setting_for_current_year,
-                    "performance_measure": c.performance_measure,
-                    "weightage_w_100": c.weightage_w_100,
-                    "self_rating": c.self_rating,
-                    "weightage": c.weightage,
-                    # "manager": "NA",
-                    # "hod": c.self_rating
-                })
-            epmm.set('key_results_area', [])
-            child4 = doc.key_results_area
-            for c in child4:
-                epmm.append("key_results_area",{
-                    "goal_setting_for_last_year": c.goal_setting_for_last_year,
-                    "performance_measure": c.performance_measure,
-                    "weightage_w_100": c.weightage_w_100,
-                    "weightage": c.weightage,
-                    "self_rating": c.self_rating
-                })
-            # epmm.set('employee_feedback', [])
-            # # child5 = doc.employee_feedback
-            # for c in range(5):
-            #     epmm.append("employee_feedback",{
-            #         "appraisee_remarks": "NA"
-            #     })
-            epmm.save(ignore_permissions=True)
-            frappe.db.commit()
+
 
 
 # @frappe.whitelist()
@@ -1846,3 +1570,293 @@ def update_ecode():
         print pm['name']
         frappe.db.set_value("Performance Management Reviewer",pm['name'],"employee_code1",pm['employee_code'])
         frappe.db.commit()
+
+
+
+
+
+
+
+
+
+@frappe.whitelist()
+def update_mis(employee,date_of_joining=None,gender=None,date_of_birth=None,department=None,salary_mode=None,bank_name=None,bank_ac_no=None,ifsc_code=None,working_shift=None,pan_number=None,
+uan_number=None,cell_number=None,father_name=None,husband_wife_name=None,permanent_address_is=None,permanent_address=None,current_address_is=None,current_address=None):
+    if employee:
+        emp_doc = frappe.get_doc("Employee",employee)
+        eiu = frappe.new_doc("Employee Info Update")
+        eiu.update({
+            "employee_code": employee,
+            "employee_name":emp_doc.employee_name,
+            "date_of_joining":date_of_joining,
+            "gender":gender,
+            "date_of_birth": date_of_birth,
+            "department": department,
+            "salary_mode": salary_mode,
+            "bank_name": bank_name,
+            "bank_ac_no": bank_ac_no,
+            "ifsc_code": ifsc_code,
+            "working_shift":working_shift,
+            "pan_number": pan_number,
+            "uan_number":uan_number,
+            "cell_number":cell_number,
+            "father_name":father_name,
+            "husband_wife_name":husband_wife_name,
+            "permanent_address_is":permanent_address_is,
+            "permanent_address":permanent_address,
+            "current_address_is":current_address_is,
+            "current_address":current_address
+        })
+        eiu.save(ignore_permissions=True)
+        frappe.db.commit()
+        frappe.sendmail(
+            recipients=['hr.hdi@hunterdouglas.asia'],
+            subject='RE:MIS Update',
+            message=""" <h4>Request for MIS Update</h4>
+                         <p>Employee %s Request to update data in MIS. Request file ID is %s.</p>
+                         <p>You can Approve/Reject the Request by clicking the below Link </p>
+                        <a href="{{ frappe.utils.get_url_to_form("Employee Info Update", %s ) }}">Open On Duty Application</a>
+                         """%(employee,eiu.name,eiu.name)
+        )
+    return "Ok"
+
+
+@frappe.whitelist()
+def update_main_mis(name,employee,status):
+    if status == "Approved":
+        eiu = frappe.get_doc("Employee Info Update",name)
+        emp_doc = frappe.get_doc("Employee",employee)
+        if eiu.date_of_joining:
+            date_of_joining = eiu.date_of_joining
+        else:
+            date_of_joining = emp_doc.date_of_joining
+        if eiu.gender:
+            gender = eiu.gender
+        else:
+            gender = emp_doc.gender
+        if eiu.date_of_birth:
+            date_of_birth = eiu.date_of_birth
+        else:
+            date_of_birth = emp_doc.date_of_birth
+        if eiu.department:
+            department = eiu.department
+        else:
+            department = emp_doc.department
+        if eiu.salary_mode:
+            salary_mode = eiu.salary_mode
+        else:
+            salary_mode = emp_doc.salary_mode
+        if eiu.bank_name:
+            bank_name = eiu.bank_name
+        else:
+            bank_name = emp_doc.bank_name
+        if eiu.bank_ac_no:
+            bank_ac_no = eiu.bank_ac_no
+        else:
+            bank_ac_no = emp_doc.bank_ac_no
+        if eiu.ifsc_code:
+            ifsc_code = eiu.ifsc_code
+        else:
+            ifsc_code = emp_doc.ifsc_code
+        if eiu.working_shift:
+            working_shift = eiu.working_shift
+        else:
+            working_shift = emp_doc.working_shift
+        if eiu.pan_number:
+            pan_number = eiu.pan_number
+        else:
+            pan_number = emp_doc.pan_number
+        if eiu.uan_number:
+            uan_number = eiu.uan_number
+        else:
+            uan_number = emp_doc.uan_number
+        if eiu.cell_number:
+            cell_number = eiu.cell_number
+        else:
+            cell_number = emp_doc.cell_number
+        if eiu.father_name:
+            father_name = eiu.father_name
+        else:
+            father_name = emp_doc.father_name
+        if eiu.husband_wife_name:
+            husband_wife_name = eiu.husband_wife_name
+        else:
+            husband_wife_name = emp_doc.husband_wife_name
+        if eiu.permanent_address_is:
+            permanent_address_is = eiu.permanent_address_is
+        else:
+            permanent_address_is = emp_doc.permanent_accommodation_type
+        if eiu.permanent_address:
+            permanent_address = eiu.permanent_address
+        else:
+            permanent_address = emp_doc.permanent_address
+        if eiu.current_address_is:
+            current_address_is = eiu.current_address_is
+        else:
+            current_address_is = emp_doc.current_accommodation_type
+        if eiu.current_address:
+            current_address = eiu.current_address
+        else:
+            current_address = emp_doc.current_address
+        emp_doc.update({
+            "date_of_joining":date_of_joining,
+            "gender":gender,
+            "date_of_birth": date_of_birth,
+            "department": department,
+            "salary_mode": salary_mode,
+            "bank_name": bank_name,
+            "bank_ac_no": bank_ac_no,
+            "ifsc_code": ifsc_code,
+            "working_shift":working_shift,
+            "pan_number": pan_number,
+            "uan_number":uan_number,
+            "cell_number":cell_number,
+            "father_name":father_name,
+            "husband_wife_name":husband_wife_name,
+            "permanent_address_is":permanent_address_is,
+            "permanent_address":permanent_address,
+            "current_address_is":current_address_is,
+            "current_address":current_address
+        })
+        emp_doc.save(ignore_permissions=True)
+        frappe.db.commit()
+        frappe.sendmail(
+            recipients=[emp_doc.user_id],
+            subject='RE:MIS Update',
+            message=""" <h4>Replay for MIS Update</h4>
+                         <p>Your MIS update request was Approved """
+        )
+    else:
+        frappe.sendmail(
+            recipients=[emp_doc.user_id],
+            subject='RE:MIS Update',
+            message=""" <h4>Replay for MIS Update</h4>
+                         <p>Your MIS update request was Rejected """
+        )
+    return "Ok"
+
+
+@frappe.whitelist(allow_guest=True)
+def update_attendance_by_app(employee,from_date,to_date,from_date_session,to_date_session,m_status):
+    query = """select name from `tabAttendance` where employee=%s and attendance_date between '%s' and '%s' """ % (employee,from_date,to_date)
+    attendance = frappe.db.sql(query,as_dict=True)
+    from_date = (datetime.strptime(str(from_date), '%Y-%m-%d')).date()
+    to_date = (datetime.strptime(str(to_date), '%Y-%m-%d')).date()
+    for a in attendance:
+        doc = frappe.get_doc("Attendance",a.name)
+        attendance_date = (datetime.strptime(str(doc.attendance_date), '%Y-%m-%d')).date()
+        first_half_status = doc.first_half_status
+        second_half_status = doc.second_half_status
+        status = doc.status
+        if from_date == to_date:
+            if doc.attendance_date == from_date:
+                if from_date_session == "First Half":
+                    first_half_status = m_status,
+                    if second_half_status == "AB":
+                        status = "Half Day"
+                    elif second_half_status == "PR":                   
+                        status = "Present"
+                elif from_date_session == "Second Half":
+                    second_half_status = m_status
+                    if first_half_status == "AB":
+                        status = "Half Day"
+                    elif first_half_status == "PR":
+                        status = "Present"
+                else:
+                    first_half_status = second_half_status = m_status,
+                    status = "Present"
+        else:
+            if doc.attendance_date == from_date:
+                if from_date_session == "Second Half":
+                    second_half_status = m_status
+                    if first_half_status == "AB":
+                        status = "Half Day"
+                    elif first_half_status == "PR":
+                        status = "Present"
+                elif from_date_session == "Full Day":
+                    first_half_status = second_half_status = m_status,
+                    status = "Present"
+            elif doc.attendance_date == to_date:
+                if to_date_session == "First Half":
+                    first_half_status = m_status,
+                    if second_half_status == "AB":
+                        status = "Half Day"
+                    elif second_half_status == "PR":                   
+                        status = "Present"
+                elif to_date_session == "Full Day":
+                    first_half_status = second_half_status = m_status,
+                    status = "Present"
+            else:
+                first_half_status = second_half_status = m_status,
+        doc.update({
+            "first_half_status": first_half_status,
+            "second_half_status": second_half_status,
+            # "status": status
+        })
+        doc.save(ignore_permissions=True)
+        doc.submit()
+        frappe.db.commit()
+
+
+
+
+@frappe.whitelist()
+def update_mr_in_att(employee,from_time,to_time,total_permission_hour):
+    att_date = from_time.date()
+    att = frappe.get_doc("Attendance",{"employee": employee,"attendance_date": att_date})   
+    mr_in = mr_out = ""
+    if att:
+        work_time = att.work_time
+        # if att.first_half_status == "AB":
+        mr_in = get_mr_in(employee,att_date)
+        if mr_in:
+            work_time = mr_in + att.work_time  
+        # if att.second_half_status == "AB":
+        mr_out = get_mr_out(employee,att_date) 
+        if mr_out:
+            work_time = mr_out + att.work_time        
+        wt_seconds = work_time.total_seconds() // 60
+        if wt_seconds > 1440:
+            work_time = timedelta(minutes=flt('1400'))    
+        if work_time >= timedelta(hours=4):
+            if work_time < timedelta(hours=7,minutes=45):
+                status = 'Half Day'
+            else:    
+                status = 'Present'
+        else:
+            status = 'Absent'
+        att.status = status
+        att.work_time = work_time
+        att.db_update()
+        frappe.db.commit()
+
+
+def get_mr_out(emp,day):
+    from_time = to_time = 0
+    day = (datetime.strptime(str(day), '%Y-%m-%d')).date()
+    dt = datetime.combine(day, datetime.min.time())
+    mrs = frappe.db.sql("""select from_time,to_time from `tabMovement Register` where employee= '%s' and  from_time between '%s' and '%s' """ % (emp,dt,add_days(dt,1)),as_dict=True)
+    for mr in mrs:   
+        from_time = mr.from_time
+        to_time = mr.to_time
+        if from_time and to_time:
+            return to_time - from_time
+
+
+def get_mr_in(emp,day):
+    from_time = to_time = 0
+    day = (datetime.strptime(str(day), '%Y-%m-%d')).date()
+    dt = datetime.combine(day, datetime.min.time())
+    mrs = frappe.db.sql("""select from_time,to_time from `tabMovement Register` where employee= '%s' and docstatus=1 and status='Approved' and from_time between '%s' and '%s' """ % (emp,dt,add_days(dt,1)),as_dict=True)
+    for mr in mrs:
+        from_time = mr.from_time
+        to_time = mr.to_time
+        if from_time and to_time:
+            return to_time - from_time
+
+
+
+
+
+        
+        

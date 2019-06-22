@@ -35,125 +35,128 @@ def execute(filters=None):
     employees = get_employees(filters)
     late_in = early_out = shift_in_time = 0
     for emp in get_employees(filters):
-        if str(emp.employee) not in auto_present_list:
-            # frappe.errprint(emp.employee)
-            emp_status = [] 
-            halfday_status = []      
-            for day in days:
-                if day in range(25,32):
-                    day_f = str(year) +'-'+str(month)+'-'+str(day)
-                else:
-                    day_f = str(filters.year) +'-'+str(filters.month)+'-'+str(day)
-                query = """select att.status,att.attendance_date,att.in_time,att.out_time from `tabAttendance` att where att.employee = '%s' and att.attendance_date='%s'""" % (emp.employee,day_f)
-                attend = frappe.db.sql(query,as_dict=1)     
-                at = frappe.get_value("Attendance",{"employee":emp.employee,"attendance_date":day_f},['admin_approved_status','name','attendance_date','status','late_in','early_out','first_half_status','second_half_status','employee','in_time','out_time','work_time','overtime'],as_dict=True)
+        if emp.employee == "1208":
+            if str(emp.employee) not in auto_present_list:
+                row = [emp.employee,emp.employee_name,emp.designation]
+                # frappe.errprint(emp.employee)
+                emp_status = [] 
+                halfday_status = []      
+                for day in days:
+                    if day in range(25,32):
+                        day_f = str(year) +'-'+str(month)+'-'+str(day)
+                    else:
+                        day_f = str(filters.year) +'-'+str(filters.month)+'-'+str(day)
+                    # query = """select att.status,att.attendance_date,att.in_time,att.out_time from `tabAttendance` att where att.employee = '%s' and att.attendance_date='%s'""" % (emp.employee,day_f)
+                    # attend = frappe.db.sql(query,as_dict=1)     
+                    at = frappe.get_value("Attendance",{"employee":emp.employee,"attendance_date":day_f},['admin_approved_status','name','attendance_date','status','late_in','early_out','first_half_status','second_half_status','employee','in_time','out_time','work_time','overtime'],as_dict=True)
 
-                # if attend:
-                #     for at in attend:
-                if at:        
-                    holiday_list = frappe.db.get_value("Employee", {'employee':emp.employee},['holiday_list'])
-                    holiday_date = frappe.db.get_all("Holiday", filters={'holiday_date':at.attendance_date,'parent': holiday_list},fields=['holiday_date','name','is_ph'])         
-                    working_shift = frappe.db.get_value("Employee", {'employee':emp.employee},['working_shift'])   
-                    assigned_shift = frappe.db.sql("""select shift from `tabShift Assignment`
-                        where employee = %s and %s between from_date and to_date""", (at.employee, at.attendance_date), as_dict=True)
-                    if assigned_shift:
-                        working_shift = assigned_shift[0]['shift'] 
-                    if at.in_time:
-                        dt = datetime.strptime(at.in_time, "%d/%m/%Y %H:%M:%S")
-                        from_time = dt.time()
-                        shift_in_time = frappe.db.get_value("Working Shift",working_shift,"in_time")
-                        emp_in_time = timedelta(hours=from_time.hour,minutes=from_time.minute,seconds=from_time.second)
-                        #Check Movement Register
-                        if get_mr_in(at.employee,at.attendance_date):
-                            emp_in_time = emp_in_time - get_mr_in(at.employee,at.attendance_date)
+                #     # if attend:
+                #     #     for at in attend:
+                    if at:        
+                        holiday_list = frappe.db.get_value("Employee", {'employee':emp.employee},['holiday_list'])
+                        holiday_date = frappe.db.get_all("Holiday", filters={'holiday_date':at.attendance_date,'parent': holiday_list},fields=['holiday_date','name','is_ph'])         
+                        working_shift = frappe.db.get_value("Employee", {'employee':emp.employee},['working_shift'])   
+                        assigned_shift = frappe.db.sql("""select shift from `tabShift Assignment`
+                            where employee = %s and %s between from_date and to_date""", (at.employee, at.attendance_date), as_dict=True)
+                        if assigned_shift:
+                            working_shift = assigned_shift[0]['shift'] 
+                        if at.in_time:
+                            dt = datetime.strptime(at.in_time, "%d/%m/%Y %H:%M:%S")
+                            from_time = dt.time()
+                            shift_in_time = frappe.db.get_value("Working Shift",working_shift,"in_time")
+                            emp_in_time = timedelta(hours=from_time.hour,minutes=from_time.minute,seconds=from_time.second)
+                            #Check Movement Register
+                            if get_mr_in(at.employee,at.attendance_date):
+                                emp_in_time = emp_in_time - get_mr_in(at.employee,at.attendance_date)
 
-                        if emp_in_time > shift_in_time:
-                            late_in = emp_in_time - shift_in_time
-                        else:
+                            if emp_in_time > shift_in_time:
+                                late_in = emp_in_time - shift_in_time
+                            else:
+                                late_in = timedelta(seconds=0)  
+
+                        if at.out_time:
+                            dt = datetime.strptime(at.out_time, "%d/%m/%Y %H:%M:%S")
+                            end_time = dt.time()
+                            shift_out_time = frappe.db.get_value("Working Shift",working_shift,"out_time")
+                            emp_out_time = timedelta(hours=end_time.hour,minutes=end_time.minute,seconds=end_time.second)
+                            #Check Movement Register
+                            if get_mr_out(at.employee,at.attendance_date):
+                                emp_out_time = emp_out_time + get_mr_out(at.employee,at.attendance_date)
+
+                            if emp_out_time < shift_out_time:
+                                early_out = shift_out_time - emp_out_time
+                            else:
+                                early_out = ''
+                        
+                        if at.admin_approved_status == 'First Half Present':
                             late_in = timedelta(seconds=0)  
+                        if at.admin_approved_status == 'Second Half Present':
+                            early_out = timedelta(seconds=0)    
+                        if at.admin_approved_status == 'First Half Absent':
+                            late_in = timedelta(hours=1)  
+                        if at.admin_approved_status == 'Second Half Absent':
+                            early_out = timedelta(hours=1)     
 
-                    if at.out_time:
-                        dt = datetime.strptime(at.out_time, "%d/%m/%Y %H:%M:%S")
-                        end_time = dt.time()
-                        shift_out_time = frappe.db.get_value("Working Shift",working_shift,"out_time")
-                        emp_out_time = timedelta(hours=end_time.hour,minutes=end_time.minute,seconds=end_time.second)
-                        #Check Movement Register
-                        if get_mr_out(at.employee,at.attendance_date):
-                            emp_out_time = emp_out_time + get_mr_out(at.employee,at.attendance_date)
+                        if holiday_date:
+                            for h in holiday_date:
+                                if get_continuous_absents(emp.employee,at.attendance_date):
+                                    emp_status.append(at.attendance_date.strftime("%d"))
 
-                        if emp_out_time < shift_out_time:
-                            early_out = shift_out_time - emp_out_time
-                        else:
-                            early_out = ''
-                    
-                    if at.admin_approved_status == 'First Half Present':
-                        late_in = timedelta(seconds=0)  
-                    if at.admin_approved_status == 'Second Half Present':
-                        early_out = timedelta(seconds=0)    
-                    if at.admin_approved_status == 'First Half Absent':
-                        late_in = timedelta(hours=1)  
-                    if at.admin_approved_status == 'Second Half Absent':
-                        early_out = timedelta(hours=1)     
+                        elif at.status == "Absent":
+                            ab_record = validate_if_attendance_not_applicable(emp.employee,at.attendance_date)
+                            frappe.errprint(ab_record[0])
+                        #     admin_status = False
+                        #     if at.admin_approved_status == 'Present' or at.admin_approved_status == 'WO' or at.admin_approved_status == 'PH':
+                        #         admin_status = True  
+                        #     if not ab_record and not admin_status:
+                        #         emp_status.append(at.attendance_date.strftime("%d"))
+                        #     if ab_record and not admin_status:
+                        #         if emp.employee == "1272":
+                        #             frappe.errprint(ab_record)
+                                    
+                        # elif at.status == "Present":
+                        #     hd_record = validate_if_attendance_not_applicable(emp.employee,at.attendance_date)
+                        #     admin_status = False
+                        #     if at.admin_approved_status == 'Present' or at.admin_approved_status == 'WO' or at.admin_approved_status == 'PH':
+                        #         admin_status = True 
+                        #     if not hd_record and not admin_status:                            
+                        #         if late_in and late_in > timedelta(minutes=15) and early_out and early_out > timedelta(minutes=5):
+                        #             emp_status.append(at.attendance_date.strftime("%d"))
+                        #         elif late_in and late_in > timedelta(minutes=15):
+                        #             halfday_status.append(at.attendance_date.strftime("%d"))
+                        #         elif early_out and early_out > timedelta(minutes=5):
+                        #             halfday_status.append(at.attendance_date.strftime("%d"))
+                        #         # else:
+                        #         #     frappe.errprint(at.attendance_date)
+                #         # elif at.status == "Half Day":           
+                #         #     hd_record = validate_if_attendance_not_applicable(emp.employee,at.attendance_date)
+                #         #     admin_status = False
+                #         #     if at.admin_approved_status == 'Present' or at.admin_approved_status == 'WO' or at.admin_approved_status == 'PH':
+                #         #         admin_status = True
+                #         #     if not hd_record and not admin_status:
+                #         #         if late_in and late_in > timedelta(minutes=15) and early_out and early_out > timedelta(minutes=5):
+                #         #             emp_status.append(at.attendance_date.strftime("%d"))
+                #         #         elif late_in and late_in > timedelta(minutes=15):
+                #         #             halfday_status.append(at.attendance_date.strftime("%d"))
+                #         #         elif early_out and early_out > timedelta(minutes=15):
+                #         #             halfday_status.append(at.attendance_date.strftime("%d"))
+                #         #         elif at.first_half_status == 'AB':
+                #         #             halfday_status.append(at.attendance_date.strftime("%d"))
+                #         #         elif at.second_half_status == 'AB':    
+                #         #             halfday_status.append(at.attendance_date.strftime("%d"))
+                #                 # else:
+                #                 #     halfday_status.append(at.attendance_date.strftime("%d"))
 
-                    if holiday_date:
-                        for h in holiday_date:
-                            if get_continuous_absents(emp.employee,at.attendance_date):
-                                emp_status.append(at.attendance_date.strftime("%d"))
-
-                    elif at.status == "Absent":
-                        ab_record = validate_if_attendance_not_applicable(emp.employee,at.attendance_date)
-                        admin_status = False
-                        if at.admin_approved_status == 'Present' or at.admin_approved_status == 'WO' or at.admin_approved_status == 'PH':
-                            admin_status = True  
-                        if not ab_record and not admin_status:
-                            emp_status.append(at.attendance_date.strftime("%d"))
-                        if ab_record and not admin_status:
-                            if emp.employee == "1272":
-                                frappe.errprint(ab_record)
-                                
-                    # elif at.status == "Present":
-                    #     hd_record = validate_if_attendance_not_applicable(emp.employee,at.attendance_date)
-                    #     admin_status = False
-                    #     if at.admin_approved_status == 'Present' or at.admin_approved_status == 'WO' or at.admin_approved_status == 'PH':
-                    #         admin_status = True 
-                    #     if not hd_record and not admin_status:                            
-                    #         if late_in and late_in > timedelta(minutes=15) and early_out and early_out > timedelta(minutes=5):
-                    #             emp_status.append(at.attendance_date.strftime("%d"))
-                    #         elif late_in and late_in > timedelta(minutes=15):
-                    #             halfday_status.append(at.attendance_date.strftime("%d"))
-                    #         elif early_out and early_out > timedelta(minutes=5):
-                    #             halfday_status.append(at.attendance_date.strftime("%d"))
-                    #         # else:
-                    #         #     frappe.errprint(at.attendance_date)
-                    # elif at.status == "Half Day":           
-                    #     hd_record = validate_if_attendance_not_applicable(emp.employee,at.attendance_date)
-                    #     admin_status = False
-                    #     if at.admin_approved_status == 'Present' or at.admin_approved_status == 'WO' or at.admin_approved_status == 'PH':
-                    #         admin_status = True
-                    #     if not hd_record and not admin_status:
-                    #         if late_in and late_in > timedelta(minutes=15) and early_out and early_out > timedelta(minutes=5):
-                    #             emp_status.append(at.attendance_date.strftime("%d"))
-                    #         elif late_in and late_in > timedelta(minutes=15):
-                    #             halfday_status.append(at.attendance_date.strftime("%d"))
-                    #         elif early_out and early_out > timedelta(minutes=15):
-                    #             halfday_status.append(at.attendance_date.strftime("%d"))
-                    #         elif at.first_half_status == 'AB':
-                    #             halfday_status.append(at.attendance_date.strftime("%d"))
-                    #         elif at.second_half_status == 'AB':    
-                    #             halfday_status.append(at.attendance_date.strftime("%d"))
-                            # else:
-                            #     halfday_status.append(at.attendance_date.strftime("%d"))
-
-            if emp_status or halfday_status:
-                emp_status1 = ','.join(emp_status)
-                halfday_status1 = ','.join(halfday_status)
-                # frappe.errprint(emp_status1)
-                row = [emp.employee,emp.employee_name,emp.designation,emp_status1,halfday_status1]    
-                ab = len(emp_status)
-                h_total = len(halfday_status)      
-                ht = h_total / 2.0
-                total = ab + ht
-                row += [total] 
+                # if emp_status or halfday_status:
+                #     emp_status1 = ','.join(emp_status)
+                #     halfday_status1 = ','.join(halfday_status)
+                #     # frappe.errprint(emp_status1)
+                #     row += [emp_status1,halfday_status1]    
+                #     ab = len(emp_status)
+                #     h_total = len(halfday_status)      
+                #     ht = h_total / 2.0
+                #     total = ab + ht
+                #     row += [total] 
                 data.append(row)  
     return columns, data
    
@@ -190,7 +193,7 @@ def get_conditions(filters):
     
 def validate_if_attendance_not_applicable(employee, attendance_date):
     status = ""
-    
+    day = attendance_date
     if is_holiday(employee, attendance_date):
         # frappe.errprint(attendance_date)
         # frappe.errprint("holiday")
@@ -246,7 +249,7 @@ def validate_if_attendance_not_applicable(employee, attendance_date):
                         session = to_date_session 
                     else:
                         session = leave
-    return leave,session
+        return leave,session
     # Check if employee on On-Duty
     od_record = frappe.db.sql("""select * from `tabOn Duty Application`
             where employee = %s and %s between from_date and to_date
@@ -273,7 +276,7 @@ def validate_if_attendance_not_applicable(employee, attendance_date):
                 else:
                     session = 'OD'  
         od = ["OD"]  
-    return od,session  
+        return od,session  
     # Check if employee on C-Off
     coff_record = frappe.db.sql("""select * from `tabCompensatory Off Application`
             where employee = %s and %s between from_date and to_date
@@ -300,7 +303,7 @@ def validate_if_attendance_not_applicable(employee, attendance_date):
                 else:
                     session = 'COFF'             
         coff = ["COFF"]     
-    return coff,session   
+        return coff,session   
     # # Check if employee on On-Travel
     # tm_record = frappe.db.sql("""select half_day from `tabTravel Management`
     #         where employee = %s and %s between from_date and to_date
@@ -333,8 +336,7 @@ def validate_if_attendance_not_applicable(employee, attendance_date):
             else:
                 session = 'TR'             
         tm = ["TR"]    
-
-    return tm,session 
+        return tm,session 
 
     if attendance_date == today():
         return True

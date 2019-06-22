@@ -25,7 +25,7 @@ def execute(filters=None):
     att_late_in = att_overtime = ""
     filters["month"] = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov",
         "Dec"].index(filters.month) + 1  
-    columns = [_("User ID") + ":Data:100",_("Name") + ":Data:100",_("Designation") + ":Data:100"] 
+    columns = [_("User ID") + ":Data:100",_("Name") + ":Data:100",_("Designation") + ":Data:150"] 
     month = filters.month - 1
     year = filters.year
     if month == 0:
@@ -34,7 +34,7 @@ def execute(filters=None):
     tdm = monthrange(cint(filters.year), month)[1]
     days = range(25,tdm+1) + range(1,25)
     for day in days:
-        columns += [(_(day) + "::80") ]
+        columns += ["<h6>"+(_(day) + "::60")+"</h6>" ]
     columns += [_("PR") + ":Float:50", _("AB") + ":Float:50",  _("TR") + ":Float:50", _("OD") + ":Float:50", _("COFF") + ":Float:50",\
      _("WO") + ":Float:50", _("PH") + ":Float:50", _("LV") + ":Float:50",_("PL") + ":Float:50",_("CL") + ":Float:50",_("SL") + ":Float:50"]        
     for emp in get_employees(filters):
@@ -50,8 +50,11 @@ def execute(filters=None):
             holiday_list = frappe.db.get_value("Employee", {'employee':emp.employee},['holiday_list'])
             holiday_date = frappe.db.get_all("Holiday", filters={'holiday_date':day_f,'parent': holiday_list},fields=['holiday_date','name','is_ph'])
             # leave_record = get_leaves(emp.employee,day_f)
-            att = frappe.get_value("Attendance",{"employee":emp.employee,"attendance_date":day_f},['admin_approved_status','name','attendance_date','status','late_in','early_out','first_half_status','second_half_status','employee','in_time','out_time','work_time','overtime'],as_dict=True)
+            att = frappe.get_value("Attendance",{"employee":emp.employee,"attendance_date":day_f},['designation','admin_approved_status','name','attendance_date','status','late_in','early_out','first_half_status','second_half_status','employee','in_time','out_time','work_time','overtime'],as_dict=True)
             if att:
+                frappe.errprint(emp.employee)
+                frappe.errprint(day_f)
+                row[2] = att.designation
                 working_shift = frappe.db.get_value("Employee", {'employee':emp.employee},['working_shift'])
                 assigned_shift = frappe.db.sql("""select shift from `tabShift Assignment`
                         where employee = %s and %s between from_date and to_date""", (att.employee, att.attendance_date), as_dict=True)
@@ -352,14 +355,10 @@ def execute(filters=None):
                             p += 0.5
                             ab += 0.5
                         else: 
-                            frappe.errprint(att.employee)
-                            frappe.errprint(att.attendance_date)
                             if att.first_half_status == att.second_half_status:
                                 row += [att.first_half_status]
                             else:
                                 row += [att.first_half_status +'/'+att.second_half_status]    
-                            frappe.errprint(att.first_half_status)
-                            frappe.errprint(att.second_half_status)
                             if att.first_half_status == 'PR' or att.second_half_status == 'PR':
                                 p += 0.5
                             if att.first_half_status == 'AB' or att.second_half_status == 'AB':
@@ -490,8 +489,8 @@ def execute(filters=None):
                     row += ["AB"]
                     ab += 1.0
                         
-
-        row += [p,ab,tr,od,coff,wo,ph,l,pl,cl,sl]        
+        row += [p,ab,tr,od,coff,wo,ph,l,pl,cl,sl]
+        # row += ["<h6>"+p+"</h6>","<h6>"+ab+"</h6>","<h6>"+tr+"</h6>","<h6>"+od+"</h6>","<h6>"+coff+"</h6>","<h6>"+wo+"</h6>","<h6>"+ph+"</h6>","<h6>"+l+"</h6>","<h6>"+pl+"</h6>","<h6>"+cl+"</h6>","<h6>"+sl+"</h6>"]        
         data.append(row)
             
     return columns, data
@@ -501,7 +500,7 @@ def get_total_p():
 
 def get_attendance(filters):
     att = frappe.db.sql(
-        """select `tabAttendance`.employee,`tabAttendance`.employee_name,`tabAttendance`.attendance_date,`tabEmployee`.department,`tabEmployee`.designation,`tabEmployee`.working_shift  from `tabAttendance`  
+        """select `tabAttendance`.designation,`tabAttendance`.employee,`tabAttendance`.employee_name,`tabAttendance`.attendance_date,`tabEmployee`.department,`tabEmployee`.designation,`tabEmployee`.working_shift  from `tabAttendance`  
         LEFT JOIN `tabEmployee` on `tabAttendance`.employee = `tabEmployee`.employee
         WHERE `tabAttendance`.status = "Present" group by `tabAttendance`.employee order by `tabAttendance`.employee""",as_dict = 1)
     return att
@@ -590,6 +589,34 @@ def get_continuous_absents(emp,day):
 #         return True
 #     return False
 
+def get_mr_out(emp,day):
+    from_time = to_time = 0
+    dt = datetime.combine(day, datetime.min.time())
+    mrs = frappe.db.sql("""select from_time,to_time from `tabMovement Register` where employee= '%s' and docstatus = 1 and status='Approved' and from_time between '%s' and '%s' """ % (emp,dt,add_days(dt,1)),as_dict=True)
+    for mr in mrs:
+        from_time = mr.from_time
+        to_time = mr.to_time
+    out_time = frappe.get_value("Attendance",{"employee":emp,"attendance_date":day},["out_time"])  
+    if out_time:
+        att_out_time = datetime.strptime(out_time,'%d/%m/%Y %H:%M:%S')
+        if from_time:
+            if att_out_time >= (from_time + timedelta(minutes=-10)) :
+                return to_time - from_time
+
+def get_mr_in(emp,day):
+    from_time = to_time = 0
+    dt = datetime.combine(day, datetime.min.time())
+    mrs = frappe.db.sql("""select from_time,to_time from `tabMovement Register` where employee= '%s' and docstatus = 1 and status='Approved' and from_time between '%s' and '%s' """ % (emp,dt,add_days(dt,1)),as_dict=True)
+    for mr in mrs:
+        from_time = mr.from_time
+        to_time = mr.to_time
+    in_time = frappe.get_value("Attendance",{"employee":emp,"attendance_date":day},["in_time"])
+    if in_time:    
+        att_in_time = datetime.strptime(in_time,'%d/%m/%Y %H:%M:%S')
+        if from_time:
+            if att_in_time >= (from_time + timedelta(minutes=-10)):
+                return to_time - from_time
+
 def get_leaves(emp,day):
     
     leave_type = from_date_session = to_date_session = leave = session = ""
@@ -643,61 +670,38 @@ def get_leaves(emp,day):
                         session = leave
     return leave,session
 
-def get_mr_out(emp,day):
-    from_time = to_time = 0
-    dt = datetime.combine(day, datetime.min.time())
-    mrs = frappe.db.sql("""select from_time,to_time from `tabMovement Register` where employee= '%s' and docstatus = 1 and status='Approved' and from_time between '%s' and '%s' """ % (emp,dt,add_days(dt,1)),as_dict=True)
-    for mr in mrs:
-        from_time = mr.from_time
-        to_time = mr.to_time
-    out_time = frappe.get_value("Attendance",{"employee":emp,"attendance_date":day},["out_time"])  
-    if out_time:
-        att_out_time = datetime.strptime(out_time,'%d/%m/%Y %H:%M:%S')
-        if from_time:
-            if att_out_time >= (from_time + timedelta(minutes=-10)) :
-                return to_time - from_time
-
-def get_mr_in(emp,day):
-    from_time = to_time = 0
-    dt = datetime.combine(day, datetime.min.time())
-    mrs = frappe.db.sql("""select from_time,to_time from `tabMovement Register` where employee= '%s' and docstatus = 1 and status='Approved' and from_time between '%s' and '%s' """ % (emp,dt,add_days(dt,1)),as_dict=True)
-    for mr in mrs:
-        from_time = mr.from_time
-        to_time = mr.to_time
-    in_time = frappe.get_value("Attendance",{"employee":emp,"attendance_date":day},["in_time"])
-    if in_time:    
-        att_in_time = datetime.strptime(in_time,'%d/%m/%Y %H:%M:%S')
-        if from_time:
-            if att_in_time >= (from_time + timedelta(minutes=-10)):
-                return to_time - from_time
-
 def get_tm(emp,day):
     from_date_session = to_date_session = tm = session = ""
-    tm_record = frappe.db.sql("""select from_date,to_date,half_day,half_day_date,from_date_session,to_date_session from `tabTour Application`
+    tm_record = frappe.db.sql("""select employee,from_date,to_date,half_day,half_day_date,from_date_session,to_date_session from `tabTour Application`
                         where employee = %s and %s between from_date and to_date
                         and docstatus = 1 and status='Approved'""", (emp, day), as_dict=True)
     if tm_record:
-        for c in tm_record:
-            half_day = c.half_day
-            half_day_date = c.half_day_date
-            from_date = c.from_date
-            to_date = c.to_date
-            from_date_session = c.from_date_session
-            to_date_session = c.to_date_session
-            session = "TR"
-        # if half_day: 
-        if from_date == to_date:
-            session = from_date_session 
-        else:  
-            if day == from_date:
-                session = from_date_session
-            elif day == to_date:
-                session = to_date_session 
-            else:
-                session = 'TR'             
-        tm = ["TR"]    
+        if len(tm_record) > 1:
+            for t in tm_record:
+                tm = ["TR"]
+                session = "Full Day"
+        else: 
+            for c in tm_record:
+                half_day = c.half_day
+                half_day_date = c.half_day_date
+                from_date = c.from_date
+                to_date = c.to_date
+                from_date_session = c.from_date_session
+                to_date_session = c.to_date_session
+                session = "TR"
+            # if half_day: 
+            if from_date == to_date:
+                session = from_date_session 
+            else:  
+                if day == from_date:
+                    session = from_date_session
+                elif day == to_date:
+                    session = to_date_session 
+                else:
+                    session = 'TR'             
+            tm = ["TR"]    
 
-    return tm,session
+    return tm,session    
 
 def get_od(emp,day):
     from_date_session = to_date_session = od = session = ""
@@ -705,49 +709,62 @@ def get_od(emp,day):
                         where employee = %s and %s between from_date and to_date
                         and docstatus = 1 and status='Approved'""", (emp, day), as_dict=True)
     if od_record:
-        for o in od_record:
-            half_day = o.half_day
-            half_day_date = o.half_day_date
-            from_date = o.from_date
-            to_date = o.to_date
-            from_date_session = o.from_date_session
-            to_date_session = o.to_date_session
-            session = from_date_session
-        if half_day: 
-            if from_date == to_date:
-                session = from_date_session 
-            else:  
-                if half_day_date == day:
-                    session = from_date_session
-                elif half_day_date == day:
-                    session = to_date_session 
-                else:
-                    session = 'OD'  
-        od = ["OD"]  
+        if len(od_record) > 1:
+            for od in od_record:
+                od = ["OD"]
+                session = "Full Day"
+        else:            
+            for o in od_record:
+                half_day = o.half_day
+                half_day_date = o.half_day_date
+                from_date = o.from_date
+                to_date = o.to_date
+                from_date_session = o.from_date_session
+                to_date_session = o.to_date_session
+                session = from_date_session
+            if half_day: 
+                if from_date == to_date:
+                    session = from_date_session 
+                else:  
+                    if half_day_date == day:
+                        session = from_date_session
+                    elif half_day_date == day:
+                        session = to_date_session 
+                    else:
+                        session = 'OD'  
+            od = ["OD"]  
     return od,session
 
 def get_coff(emp,day):
     from_date_session = to_date_session = coff = session = ""
-    coff_record = frappe.db.sql("""select from_date,to_date,half_day,from_date_session,to_date_session from `tabCompensatory Off Application`
+    coff_record = frappe.db.sql("""select from_date,to_date,half_day,half_day_date,from_date_session,to_date_session from `tabCompensatory Off Application`
                         where employee = %s and %s between from_date and to_date
                         and docstatus = 1 and status='Approved'""", (emp, day), as_dict=True)
     if coff_record:
-        for c in coff_record:
-            half_day = c.half_day
-            from_date = c.from_date
-            to_date = c.to_date
-            from_date_session = c.from_date_session
-            to_date_session = c.to_date_session
-            session = from_date_session
-        if half_day:
-            if from_date == to_date:
-               session = from_date_session 
-            else:   
-                if from_date == day:
-                    session = from_date_session
-                elif to_date == day:
-                    session = to_date_session 
-        coff = ["COFF"]  
+        if len(coff_record) > 1:
+            for c in coff_record:
+                coff = ["COFF"] 
+                session = "Full Day"
+        else: 
+            for c in coff_record:
+                half_day = c.half_day
+                half_day_date = c.half_day_date
+                from_date = c.from_date
+                to_date = c.to_date
+                from_date_session = c.from_date_session
+                to_date_session = c.to_date_session
+                session = from_date_session
+            if half_day: 
+                if from_date == to_date:
+                    session = from_date_session 
+                else:  
+                    if half_day_date == day:
+                        session = from_date_session
+                    elif half_day_date == day:
+                        session = to_date_session 
+                    else:
+                        session = 'COFF'             
+            coff = ["COFF"]     
     return coff,session
     
 # def get_tm(emp,day):

@@ -247,8 +247,10 @@ def validate_if_attendance_not_applicable(employee, attendance_date):
 
 
 def get_attendance(filters):
-    attendance = frappe.db.sql("""select att.first_half_status as first_half_status,att.second_half_status as second_half_status,att.name as name,att.employee_name as employee_name,att.attendance_date as attendance_date,att.work_time as work_time,att.overtime as overtime,att.employee as employee, att.employee_name as employee_name,att.status as status,att.in_time as in_time,att.out_time as out_time from `tabAttendance` att 
-    where  docstatus = 1 """, as_dict=1)
+    attendance = frappe.db.sql("""select att.first_half_status as first_half_status,att.second_half_status as second_half_status,att.name as name,att.employee_name as employee_name,att.attendance_date as attendance_date,att.work_time as work_time,att.overtime as overtime,att.employee as employee, att.employee_name as employee_name,att.status as status,
+    att.in_time as in_time,att.out_time as out_time from `tabAttendance` att 
+    left join `tabEmployee` emp on att.employee = emp.employee  
+    where where  docstatus = 1 """, as_dict=1)
     return attendance
 
     

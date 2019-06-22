@@ -86,9 +86,10 @@ frappe.ui.form.on('On Duty Application', {
                 callback: function (r) {
                     if(r.message != 0){
                         var type = r.message.type 
+                        var date = r.message.date
                         validated = false
-                        var s = "You Already Applied type on Same Day"
-                        var rs = s.replace("type",type)
+                        var s = "You Already Applied type on date"
+                        var rs = s.replace("type",type).replace("date",date)
                         frappe.msgprint(rs)
                     }
                 }

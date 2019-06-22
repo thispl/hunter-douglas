@@ -1,0 +1,31 @@
+{
+ "add_total_row": 0, 
+ "apply_user_permissions": 1, 
+ "creation": "2019-04-29 18:26:17.845504", 
+ "disabled": 0, 
+ "docstatus": 0, 
+ "doctype": "Report", 
+ "idx": 0, 
+ "is_standard": "Yes", 
+ "json": "{\"add_total_row\": 0, \"sort_by\": \"Performance Management Reviewer.modified\", \"add_totals_row\": 0, \"sort_order\": \"desc\", \"sort_by_next\": null, \"filters\": [], \"sort_order_next\": \"desc\", \"columns\": [[\"name\", \"Performance Management Reviewer\"], [\"employee_name\", \"Performance Management Reviewer\"], [\"employee_code\", \"Performance Management Reviewer\"], [\"department\", \"Performance Management Reviewer\"], [\"business_unit\", \"Performance Management Reviewer\"], [\"location\", \"Performance Management Reviewer\"], [\"average_score\", \"Performance Management Reviewer\"], [\"average_score_attained\", \"Performance Management Reviewer\"], [\"performance_reviewer\", \"Performance Management Reviewer\"], [\"potential_reviewer\", \"Performance Management Reviewer\"], [\"promotion_reviewer\", \"Performance Management Reviewer\"], [\"increment\", \"Performance Management Reviewer\"], [\"salary_correction\", \"Performance Management Reviewer\"]]}", 
+ "letter_head": "Performance appraisal", 
+ "modified": "2019-04-29 20:29:57.019146", 
+ "modified_by": "Administrator", 
+ "module": "Hunter Douglas", 
+ "name": "PM Reviewer Status", 
+ "owner": "Administrator", 
+ "ref_doctype": "Performance Management Reviewer", 
+ "report_name": "PM Reviewer Status ", 
+ "report_type": "Report Builder", 
+ "roles": [
+  {
+   "role": "System Manager"
+  }, 
+  {
+   "role": "Reviewer"
+  }, 
+  {
+   "role": "HR Manager"
+  }
+ ]
+}

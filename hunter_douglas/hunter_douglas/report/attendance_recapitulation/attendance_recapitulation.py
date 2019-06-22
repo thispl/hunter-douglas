@@ -344,15 +344,10 @@ def get_columns():
     return columns
 
 def get_attendance(conditions,filters):
-    # exc = frappe.db.get_list("Auto Present Employees",fields=['employee'])
-    # employees_list = []
-    # for e in exc:
-    #     employees_list.append(e.employee)
-    # employees = frappe.get_all('Employee',{'status':'Active'})
-    # for emp in employees:
-    #     if emp.name not in employees_list:
-    attendance = frappe.db.sql("""select att.admin_approved_status,att.late_in as late_in,att.early_out as early_out,att.first_half_status as first_half_status,att.second_half_status as second_half_status,att.name as name,att.employee_name as employee_name,att.attendance_date as attendance_date,att.work_time as work_time,att.overtime as overtime,att.employee as employee, att.employee_name as employee_name,att.status as status,att.in_time as in_time,att.out_time as out_time from `tabAttendance` att 
-    where  docstatus = 1 %s order by att.attendance_date,att.employee""" % conditions, filters, as_dict=1)
+    attendance = frappe.db.sql("""select att.admin_approved_status,att.late_in as late_in,att.early_out as early_out,att.first_half_status as first_half_status,att.second_half_status as second_half_status,att.name as name,att.employee_name as employee_name,att.attendance_date as attendance_date,att.work_time as work_time,att.overtime as overtime,att.employee as employee, 
+    att.employee_name as employee_name,att.status as status,att.in_time as in_time,att.out_time as out_time from `tabAttendance` att 
+    left join `tabEmployee` emp on att.employee = emp.employee  
+    where att.docstatus = 1 %s order by att.attendance_date,att.employee""" % conditions, filters, as_dict=1)
     return attendance
 
 def get_conditions(filters):
@@ -466,25 +461,30 @@ def get_tm(emp,day):
                         where employee = %s and %s between from_date and to_date
                         and docstatus = 1 and status='Approved'""", (emp, day), as_dict=True)
     if tm_record:
-        for c in tm_record:
-            half_day = c.half_day
-            half_day_date = c.half_day_date
-            from_date = c.from_date
-            to_date = c.to_date
-            from_date_session = c.from_date_session
-            to_date_session = c.to_date_session
-            session = "TR"
-        # if half_day: 
-        if from_date == to_date:
-            session = from_date_session 
-        else:  
-            if day == from_date:
-                session = from_date_session
-            elif day == to_date:
-                session = to_date_session 
-            else:
-                session = 'TR'             
-        tm = ["TR"]    
+        if len(tm_record) > 1:
+            for t in tm_record:
+                tm = ["TR"]
+                session = "Full Day"
+        else: 
+            for c in tm_record:
+                half_day = c.half_day
+                half_day_date = c.half_day_date
+                from_date = c.from_date
+                to_date = c.to_date
+                from_date_session = c.from_date_session
+                to_date_session = c.to_date_session
+                session = "TR"
+            # if half_day: 
+            if from_date == to_date:
+                session = from_date_session 
+            else:  
+                if day == from_date:
+                    session = from_date_session
+                elif day == to_date:
+                    session = to_date_session 
+                else:
+                    session = 'TR'             
+            tm = ["TR"]    
 
     return tm,session
 
@@ -494,25 +494,30 @@ def get_od(emp,day):
                         where employee = %s and %s between from_date and to_date
                         and docstatus = 1 and status='Approved'""", (emp, day), as_dict=True)
     if od_record:
-        for o in od_record:
-            half_day = o.half_day
-            half_day_date = o.half_day_date
-            from_date = o.from_date
-            to_date = o.to_date
-            from_date_session = o.from_date_session
-            to_date_session = o.to_date_session
-            session = from_date_session
-        if half_day: 
-            if from_date == to_date:
-                session = from_date_session 
-            else:  
-                if half_day_date == day:
-                    session = from_date_session
-                elif half_day_date == day:
-                    session = to_date_session 
-                else:
-                    session = 'OD'  
-        od = ["OD"]  
+        if len(od_record) > 1:
+            for od in od_record:
+                od = ["OD"]
+                session = "Full Day"
+        else:            
+            for o in od_record:
+                half_day = o.half_day
+                half_day_date = o.half_day_date
+                from_date = o.from_date
+                to_date = o.to_date
+                from_date_session = o.from_date_session
+                to_date_session = o.to_date_session
+                session = from_date_session
+            if half_day: 
+                if from_date == to_date:
+                    session = from_date_session 
+                else:  
+                    if half_day_date == day:
+                        session = from_date_session
+                    elif half_day_date == day:
+                        session = to_date_session 
+                    else:
+                        session = 'OD'  
+            od = ["OD"]  
     return od,session
 
 
@@ -522,25 +527,30 @@ def get_coff(emp,day):
                         where employee = %s and %s between from_date and to_date
                         and docstatus = 1 and status='Approved'""", (emp, day), as_dict=True)
     if coff_record:
-        for c in coff_record:
-            half_day = c.half_day
-            half_day_date = c.half_day_date
-            from_date = c.from_date
-            to_date = c.to_date
-            from_date_session = c.from_date_session
-            to_date_session = c.to_date_session
-            session = from_date_session
-        if half_day: 
-            if from_date == to_date:
-                session = from_date_session 
-            else:  
-                if half_day_date == day:
-                    session = from_date_session
-                elif half_day_date == day:
-                    session = to_date_session 
-                else:
-                    session = 'COFF'             
-        coff = ["COFF"]     
+        if len(coff_record) > 1:
+            for c in coff_record:
+                coff = ["COFF"] 
+                session = "Full Day"
+        else: 
+            for c in coff_record:
+                half_day = c.half_day
+                half_day_date = c.half_day_date
+                from_date = c.from_date
+                to_date = c.to_date
+                from_date_session = c.from_date_session
+                to_date_session = c.to_date_session
+                session = from_date_session
+            if half_day: 
+                if from_date == to_date:
+                    session = from_date_session 
+                else:  
+                    if half_day_date == day:
+                        session = from_date_session
+                    elif half_day_date == day:
+                        session = to_date_session 
+                    else:
+                        session = 'COFF'             
+            coff = ["COFF"]     
     return coff,session
 
 def get_ab_fh(emp,day):

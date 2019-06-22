@@ -187,7 +187,6 @@ def get_number_of_leave_days(employee, from_date, to_date,from_date_session=None
 
 @frappe.whitelist()
 def update_tm(tm_id,expense_claim):
-    frappe.errprint("hi")
     if tm_id:
         frappe.errprint(tm_id)
         tvm = frappe.get_doc("Travel Management",tm_id)
@@ -197,3 +196,32 @@ def update_tm(tm_id,expense_claim):
             })
             tvm.save()
     return "OK"
+
+
+@frappe.whitelist()
+def create_tour_application(travel_management):
+    tr = frappe.get_doc("Travel Management",travel_management)
+    tour = frappe.new_doc("Tour Application")
+    tour.update({
+        "employee": tr.employee,
+        "employee_name": tr.employee_name,
+        "approver_name": tr.approver_name,
+        "approver": tr.approver,
+        "from_date": tr.from_date,
+        "to_date": tr.to_date,
+        "half_day": tr.half_day,
+        "half_day_date": tr.half_day_date,
+        "from_date_session": tr.from_date_session,
+        "to_date_session": tr.to_date_session,
+        "description": tr.description,
+        "department": tr.department,
+        "grade": tr.grade,
+        "location": tr.location,
+        "business_unit": tr.business_unit,
+        "category": tr.category,
+        "follow_via_email": 0
+
+    })
+    tour.save(ignore_permissions=True)
+    frappe.db.commit()
+    return tour.name

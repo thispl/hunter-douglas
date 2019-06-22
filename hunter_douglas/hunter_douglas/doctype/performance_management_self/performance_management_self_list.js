@@ -1,6 +1,6 @@
 frappe.listview_settings['Performance Management Self'] = {
     // onload:function(frm){
-    //     frm.trigger("refresh")
+    //     console.log("helo")
     // },
     refresh: function (me) {
         var emp = ""

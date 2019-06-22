@@ -5,19 +5,19 @@ frappe.ui.form.on('Travel Management', {
 	refresh: function(frm) {
         if (frm.doc.docstatus == 1 && frm.doc.status == 'Approved')
         {
-		// frm.add_custom_button(__("Expense Claim"),function(){
-		// 	if (frm.doc.expense_claim){
+		frm.add_custom_button(__("Expense Claim"),function(){
+			if (frm.doc.expense_claim){
 
-		// 		frappe.set_route("Form","Expense Claim",frm.doc.expense_claim)
-		// 	}
-		// 	else{
-		// 		frappe.route_options = {
-		// 			"travel_management": frm.doc.name,
-		// 		},
-		// 		frappe.set_route("Form","Expense Claim","New Expense Claim 1")
-		// 	}
+				frappe.set_route("Form","Expense Claim",frm.doc.expense_claim)
+			}
+			else{
+				frappe.route_options = {
+					"travel_management": frm.doc.name,
+				},
+				frappe.set_route("Form","Expense Claim","New Expense Claim 1")
+			}
 			
-		// })
+		})
     }
     },  
 	from_date: function(frm) {
@@ -89,5 +89,24 @@ frappe.ui.form.on('Travel Management', {
                 }
             }
         });
+    },
+    after_save: function(frm){
+        frappe.call({
+            "method": 'hunter_douglas.hunter_douglas.doctype.travel_management.travel_management.create_tour_application',
+            args:{
+                "travel_management": frm.doc.name
+            },
+            callback: function(r){
+               frappe.call({
+                "method": "frappe.client.set_value",
+                "args": {
+                "doctype": "Travel Management",
+                "name": frm.doc.name,
+                "fieldname": "tour_application",
+                "value":r.message
+                },
+            })
+            }
+        })
     }
 });

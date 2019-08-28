@@ -94,28 +94,28 @@ frappe.ui.form.on('Compensatory Off Application', {
     },
 
     validate: function(frm){
-        if(frm.doc.employee){
-            frappe.call({
-                "method": 'hunter_douglas.update_attendance.check_other_docs',
-                args: {
-                    "employee": frm.doc.employee,
-                    "from_date": frm.doc.from_date,
-                    "to_date": frm.doc.to_date,
-                    "from_date_session": frm.doc.from_date_session,
-                    "to_date_session": frm.doc.to_date_session
-                },
-                callback: function (r) {
-                    if(r.message != 0){
-                        var type = r.message.type 
-                        var date = r.message.date
-                        validated = false
-                        var s = "You Already Applied type on date"
-                        var rs = s.replace("type",type).replace("date",date)
-                        frappe.msgprint(rs)
-                    }
-                }
-            })
-        } 
+        // if(frm.doc.employee){
+        //     frappe.call({
+        //         "method": 'hunter_douglas.update_attendance.check_other_docs',
+        //         args: {
+        //             "employee": frm.doc.employee,
+        //             "from_date": frm.doc.from_date,
+        //             "to_date": frm.doc.to_date,
+        //             "from_date_session": frm.doc.from_date_session,
+        //             "to_date_session": frm.doc.to_date_session
+        //         },
+        //         callback: function (r) {
+        //             if(r.message != 0){
+        //                 var type = r.message.type 
+        //                 var date = r.message.date
+        //                 validated = false
+        //                 var s = "You Already Applied type on date"
+        //                 var rs = s.replace("type",type).replace("date",date)
+        //                 frappe.msgprint(rs)
+        //             }
+        //         }
+        //     })
+        // } 
         frm.trigger("calculate_total_days");
         frappe.call({
             "method": 'hunter_douglas.hunter_douglas.doctype.on_duty_application.on_duty_application.check_attendance',

@@ -19,17 +19,25 @@ import xml.etree.ElementTree as ET
 
 class MissPunchApplication(Document):
     def on_submit(self):
-        if self.status == "Approved":
+        if self.status == "Approved": 
             update_attendance_by_mp(self.employee,self.attendance_date,self.in_time,self.out_time)
 
 
 
 @frappe.whitelist()
 def check_attendance(employee,attendance_date):
+    att_in_time = att_out_time = 0
     if frappe.db.exists("Attendance", {"employee": employee,"attendance_date": attendance_date}):
         att = frappe.get_doc("Attendance",{"employee": employee,"attendance_date": attendance_date})
         if att:
-            return att
+            if att.in_time:
+                att_in = datetime.strptime(att.in_time,"%d/%m/%Y %H:%M:%S")
+                att_in_time = att_in.strftime("%H:%M:%S")
+            if att.out_time:
+                att_out = datetime.strptime(att.out_time,"%d/%m/%Y %H:%M:%S")
+                att_out_time = att_out.strftime("%H:%M:%S")    
+                
+            return att_in_time,att_out_time
     else:
         return "OK"
 
@@ -49,13 +57,19 @@ def update_attendance_by_mp(employee,attendance_date,in_time,out_time):
     early_out = nd.early_out
     work_time = timedelta(minutes=cint(nd.work_time))
     over_time = timedelta(minutes=cint(nd.over_time))
+    if in_time:
+        att_in = attendance_date.strftime("%d/%m/%Y")
+        att_in_time = str(att_in) + ' ' +str(in_time)
+    if out_time:
+        att_out = attendance_date.strftime("%d/%m/%Y")
+        att_out_time = str(att_out) + ' ' +str(out_time)
     attendance_id = frappe.db.exists("Attendance", {
                                 "employee": employee, "attendance_date": attendance_date,"docstatus":1})
     if attendance_id:
         attendance = frappe.get_doc(
             "Attendance", attendance_id)
-        attendance.out_time = out_time
-        attendance.in_time = in_time
+        attendance.out_time = att_out_time
+        attendance.in_time = att_in_time
         attendance.status = status 
         attendance.first_half_status = first_half_status
         attendance.second_half_status = second_half_status
@@ -73,11 +87,11 @@ def update_attendance_by_mp(employee,attendance_date,in_time,out_time):
             "employee": employee,
             "attendance_date": attendance_date,
             "status": status,
-            "in_time": in_time,
+            "in_time": att_in_time,
             "late_in" : late_in,
             "early_out" : early_out,
             "working_shift" : working_shift,
-            "out_time": out_time,
+            "out_time": att_out_time,
             "work_time": work_time,
             "overtime":over_time,
             "first_half_status": first_half_status,

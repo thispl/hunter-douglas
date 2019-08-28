@@ -8,7 +8,8 @@ frappe.ui.form.on('Movement Register Approval', {
                         "method": "frappe.client.get_list",
                         args: {
                                 "doctype": "Movement Register",
-                                filters: { "docstatus": 0, "status": "Applied" }
+                                filters: { "docstatus": 0, "status": ["in",["Applied","Approved"]] },
+                                limit_page_length: 50
                         },
                         callback: function (r) {
                                 if (r.message) {
@@ -25,8 +26,8 @@ frappe.ui.form.on('Movement Register Approval', {
                                                                                 var row = frappe.model.add_child(frm.doc, "Movement Register Process", "movement_register_process");
                                                                                 row.movement_register = r.message.name;
                                                                                 row.employee_name = r.message.employee_name;
-                                                                                row.from_time = r.message.from_time
-                                                                                row.to_time = r.message.to_time;
+                                                                                row.from_time = moment(r.message.from_time).format('DD-MM-YYYY HH:mm:ss');
+                                                                                row.to_time = moment(r.message.to_time).format('DD-MM-YYYY HH:mm:ss');
                                                                                 var tph = r.message.total_permission_hour;
                                                                                 row.total_hour = r.message.total_permission_hour;
                                                                                 row.purpose_to_visit = r.message.description;
@@ -47,7 +48,8 @@ frappe.ui.form.on('Movement Register Approval', {
                         "method": "frappe.client.get_list",
                         args: {
                                 "doctype": "Movement Register",
-                                filters: { "docstatus": 1, "status": "Approved" }
+                                filters: { "docstatus": 1, "status": "Approved" },
+                                limit_page_length: 50
                         },
                         callback: function (r) {
                                 if (r.message) {
@@ -56,16 +58,16 @@ frappe.ui.form.on('Movement Register Approval', {
                                                         "method": "frappe.client.get",
                                                         args: {
                                                                 "doctype": "Movement Register",
-                                                                "name": d.name
-                                                        },
+                                                                "name": d.name,
+                                                            },
                                                         callback: function (r) {
                                                                 if (r.message) {
                                                                         if (frappe.session.user == r.message.approver || (frappe.user.has_role("System Manager"))) {
                                                                                 var row = frappe.model.add_child(frm.doc, "Movement Register Approval Process", "movement_register_approval_process");
                                                                                 row.movement_register = r.message.name;
                                                                                 row.employee_name = r.message.employee_name;
-                                                                                row.from_time = r.message.from_time
-                                                                                row.to_time = r.message.to_time;
+                                                                                row.from_time = moment(r.message.from_time).format('DD-MM-YYYY HH:mm:ss');
+                                                                                row.to_time = moment(r.message.to_time).format('DD-MM-YYYY HH:mm:ss');
                                                                                 row.total_hours = r.message.total_permission_hour;
                                                                                 row.purpose_to_visit = r.message.description;
                                                                                 row.approver = r.message.approver;

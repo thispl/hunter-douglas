@@ -650,7 +650,7 @@ def check_other_docs(employee,from_date,to_date,from_date_session,to_date_sessio
 def verify_other_docs(employee,doc_date,session):
     doc_date = datetime.strptime(doc_date, '%Y-%m-%d').date()
     leave_record = frappe.db.sql("""select from_date,leave_type1,to_date,from_date_session,to_date_session from `tabLeave Application`
-            where employee = %s and %s between from_date and to_date """, (employee, doc_date), as_dict=True)
+            where docstatus= 1 and employee = %s and %s between from_date and to_date """, (employee, doc_date), as_dict=True)
     if leave_record:
         if session == "Full Day":
             return "Leave",doc_date
@@ -747,13 +747,14 @@ def verify_other_docs(employee,doc_date,session):
 
 @frappe.whitelist()
 def temp_att():
-    from_date = '2019-03-01'
-    to_date = '2019-03-22'
-    emp = '1040'
+    from_date = '2019-07-25'
+    to_date = '2019-08-24'
+    emp = '1296'
     # from_date = '2019-04-03'
     # to_date = '2019-04-03'
     attendance = frappe.db.sql("""select att.name as name,att.status as status,att.admin_approved_status,att.late_in as late_in,att.early_out as early_out,att.first_half_status as first_half_status,att.second_half_status as second_half_status,att.name as name,att.employee_name as employee_name,att.attendance_date as attendance_date,att.work_time as work_time,att.overtime as overtime,att.employee as employee, att.employee_name as employee_name,att.status as status,att.in_time as in_time,att.out_time as out_time from `tabAttendance` att 
-    where employee = %s and docstatus = 1 and att.attendance_date between %s and %s""",(emp,from_date,to_date) ,as_dict=1)
+    where att.admin_approved_status is null and docstatus = 1 and att.attendance_date between %s and %s""",(from_date,to_date) ,as_dict=1)
+    print len(attendance)
     for att in attendance:
         if att:
             addnl_work_time = timedelta(seconds=0)

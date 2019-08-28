@@ -21,7 +21,7 @@ frappe.ui.form.on('Fetch Attendance', {
 					}
 				}
 			})
-		} else if(frm.doc.from_date && frm.doc.to_date && frm.doc.employee && !frm.doc.department && !frm.doc.designation && !frm.doc.location){
+		} else if(frm.doc.from_date && frm.doc.to_date || frm.doc.employee || frm.doc.department || frm.doc.designation || frm.doc.location){
 			frappe.call({
 				method:"hunter_douglas.custom.fetch_att_test",
 				args:{

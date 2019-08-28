@@ -10,6 +10,7 @@ from frappe import _
 from frappe.utils import today,flt,add_days,date_diff,getdate,cint,formatdate, getdate, get_link_to_form, \
     comma_or, get_fullname
 from hunter_douglas.hunter_douglas.doctype.on_duty_application.on_duty_application import validate_if_attendance_not_applicable
+from frappe.utils.background_jobs import enqueue
 
 class LeaveApproverIdentityError(frappe.ValidationError): pass
 class OverlapError(frappe.ValidationError): pass
@@ -18,6 +19,30 @@ class TravelManagement(Document):
     def on_submit(self):
         if self.status == "Applied":
             frappe.throw(_("Only Applications with status 'Approved' and 'Rejected' can be submitted"))
+        # self.send_ticket_copy()
+    
+    def on_update_after_submit(self):
+        attachments = self.get_attachments()
+        email_args = {
+            'recipients':'abdulla.pi@voltechgroup.com',
+            'attachments':[self.get_attachments()], 
+            'subject':'Ticket Copy  for %s' % self.name,
+            'message':""" <p><em><strong>Ticket Requisition</strong></em></p>
+                        <ul style="list-style-type: circle;">
+                        <li>Employee Code: <strong>%s</strong></li>
+                        <li>Employee Name: <strong>%s</strong></li>
+                        <li>Status: <strong>%s</strong></li>
+                        <li>Approved By: <strong>%s</strong></li>
+                        <li>Travel Date: <strong>%s</strong></li>
+                        <li>From Place: <strong>%s</strong></li>
+                        <li>To Place: <strong>%s </strong></li>
+                        </ul>"""%(self.employee,self.employee_name,self.status,self.approver,formatdate(self.from_date),self.from_place,self.to_place),
+            'now':True,
+        }
+        enqueue(method=frappe.sendmail, queue='short', timeout=300, is_async=True, **email_args)
+        
+    def get_attachments(self):
+        return frappe.get_doc("File",{'attached_to_doctype':self.doctype,'attached_to_name':self.name})
 
     def validate(self):
         self.validate_approver()	
@@ -44,33 +69,34 @@ class TravelManagement(Document):
                 LeaveApproverIdentityError)
 
     def validate_tm_overlap(self):
-        if not self.name:
-            # hack! if name is null, it could cause problems with !=
-            self.name = "New Travel Management"
+        if not self.docstatus == 1:
+            if not self.name:
+                # hack! if name is null, it could cause problems with !=
+                self.name = "New Travel Management"
 
-        for d in frappe.db.sql("""
-            select
-                name, total_number_of_days, from_date, to_date, half_day_date
-            from `tabTravel Management`
-            where employee = %(employee)s and docstatus < 2 and status in ("Open","Applied", "Approved")
-            and to_date >= %(from_date)s and from_date <= %(to_date)s
-            and name != %(name)s""", {
-                "employee": self.employee,
-                "from_date": self.from_date,
-                "to_date": self.to_date,
-                "name": self.name
-            }, as_dict = 1):
+            for d in frappe.db.sql("""
+                select
+                    name, total_number_of_days, from_date, to_date, half_day_date
+                from `tabTravel Management`
+                where employee = %(employee)s and docstatus < 2 and status in ("Open","Applied", "Approved")
+                and to_date >= %(from_date)s and from_date <= %(to_date)s
+                and name != %(name)s""", {
+                    "employee": self.employee,
+                    "from_date": self.from_date,
+                    "to_date": self.to_date,
+                    "name": self.name
+                }, as_dict = 1):
 
-            if cint(self.half_day)==1 and getdate(self.half_day_date) == getdate(d.half_day_date) and (
-                flt(self.total_leave_days)==0.5
-                or getdate(self.from_date) == getdate(d.to_date)
-                or getdate(self.to_date) == getdate(d.from_date)):
+                if cint(self.half_day)==1 and getdate(self.half_day_date) == getdate(d.half_day_date) and (
+                    flt(self.total_leave_days)==0.5
+                    or getdate(self.from_date) == getdate(d.to_date)
+                    or getdate(self.to_date) == getdate(d.from_date)):
 
-                total_leaves_on_half_day = self.get_total_leaves_on_half_day()
-                if total_leaves_on_half_day >= 1:
+                    total_leaves_on_half_day = self.get_total_leaves_on_half_day()
+                    if total_leaves_on_half_day >= 1:
+                        self.throw_overlap_error(d)
+                else:
                     self.throw_overlap_error(d)
-            else:
-                self.throw_overlap_error(d)
 
     def throw_overlap_error(self, d):
         msg = _("Employee {0} has already applied for Travel between {1} and {2}").format(self.employee,formatdate(d['from_date']), formatdate(d['to_date'])) \
@@ -225,3 +251,9 @@ def create_tour_application(travel_management):
     tour.save(ignore_permissions=True)
     frappe.db.commit()
     return tour.name
+
+
+@frappe.whitelist()
+def delete_tour_application(doc, method):
+    tr = frappe.get_doc("Tour Application",doc.tour_application)
+    tr.cancel()

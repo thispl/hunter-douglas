@@ -22,6 +22,7 @@ import dateutil.parser
 
 @frappe.whitelist()
 def fetch_att_test(from_date,to_date,employee=None,department=None,designation=None,location=None):
+    frappe.errprint(from_date)
     employees = []
     from_date = (datetime.strptime(str(from_date), '%Y-%m-%d')).date()
     to_date = (datetime.strptime(str(to_date), '%Y-%m-%d')).date()
@@ -331,7 +332,7 @@ def fetch_employee():
     root = ET.fromstring(r.content)
     for emp in root.findall('user'):
         reference_code = emp.find('reference-code').text
-        if reference_code == "1321":
+        if reference_code == "1324":
             if not frappe.db.exists("Employee",reference_code):
                 employee = frappe.new_doc("Employee")
                 employee.update({
@@ -784,8 +785,8 @@ def calculate_comp_off():
     #                 })
     #                 coff.save(ignore_permissions=True)
     #                 frappe.db.commit()
-    from_date = (datetime.strptime('2019-04-25', '%Y-%m-%d')).date()
-    to_date = (datetime.strptime('2019-05-24', '%Y-%m-%d')).date()
+    from_date = (datetime.strptime('2019-07-25', '%Y-%m-%d')).date()
+    to_date = (datetime.strptime('2019-08-24', '%Y-%m-%d')).date()
     for preday in daterange(from_date,to_date):
         employee = frappe.db.sql("""select name,employee_name,department,designation,category from `tabEmployee`
                             where status ="Active" and coff_eligible=1 """, as_dict=True)
@@ -805,6 +806,7 @@ def calculate_comp_off():
             actual_in_time = ws.out_time
             actual_out_time = ws.in_time
             actual_work_hours = ws.out_time - ws.in_time
+            print emp.name,preday,actual_work_hours
             if frappe.db.exists("Attendance", {"employee":emp.name,"attendance_date": preday}):
                 attendance = frappe.get_doc("Attendance", {"employee":emp.name,"attendance_date": preday})
                 if attendance.work_time > actual_work_hours:
@@ -1010,6 +1012,7 @@ def att_adjust(employee,attendance_date,name,in_time,out_time,status_p,status_a,
         elif att and status_first_half_absent == "1":
             if att.status == 'Present':
                 att.update({
+                    "status":"Half Day",
                     "first_half_status":"AB",
                     "admin_approved_status": "First Half Absent",
                     "in_time": itime,
@@ -1034,6 +1037,7 @@ def att_adjust(employee,attendance_date,name,in_time,out_time,status_p,status_a,
         elif att and status_second_half_absent == "1":
             if att.status == 'Present':
                 att.update({
+                    "status":"Half Day",
                     "second_half_status":"AB",
                     "admin_approved_status": "Second Half Absent",
                     "in_time": itime,
@@ -1892,12 +1896,13 @@ def update_attendance_by_app(employee,from_date,to_date,from_date_session,to_dat
 
 @frappe.whitelist()
 def update_mr_in_att(employee,from_time,to_time,total_permission_hour):
+    mr_in_time = mr_out_time = ''
     frappe.errprint(employee)
     frappe.errprint(from_time)
     frappe.errprint(to_time)
     frappe.errprint(total_permission_hour)
 
-    att_date = from_time.date()
+    att_date = (datetime.strptime(str(from_time), '%Y-%m-%d %H:%M:%S')).date()
     att = frappe.get_doc("Attendance",{"employee": employee,"attendance_date": att_date})   
     mr_in = mr_out = ""
     if att:
@@ -1906,10 +1911,12 @@ def update_mr_in_att(employee,from_time,to_time,total_permission_hour):
         # if att.first_half_status == "AB":
         mr_in = get_mr_in(employee,att_date)
         if mr_in:
+            mr_in_time = mr_in
             work_time = mr_in + att.work_time  
         # if att.second_half_status == "AB":
         mr_out = get_mr_out(employee,att_date) 
         if mr_out:
+            mr_out_time = mr_out
             work_time = mr_out + att.work_time        
         wt_seconds = work_time.total_seconds() // 60
         if wt_seconds > 1440:
@@ -1923,8 +1930,8 @@ def update_mr_in_att(employee,from_time,to_time,total_permission_hour):
             status = 'Absent'
         att.status = status
         att.work_time = work_time
-        frappe.errprint(att.work_time)
-
+        att.mr_in_time = mr_in_time
+        att.mr_out_time = mr_out_time
         att.db_update()
         frappe.db.commit()
 

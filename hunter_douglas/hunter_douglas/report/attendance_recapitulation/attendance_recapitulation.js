@@ -66,7 +66,7 @@ frappe.query_reports["Attendance recapitulation"] = {
 		if (columnDef.id == "Name" && frappe.user.has_role("Employee")) {
 			value = dataContext.Name
 			columnDef.df.link_onclick =
-				"frappe.query_reports['Attendance recapitulation'].block_employee(" + JSON.stringify(dataContext) + ")";
+				"frappe.query_reports['Attendance recapitulation'].open_att_adjust1(" + JSON.stringify(dataContext) + ")";
 		}
 		if (columnDef.id == "Shift" && frappe.user.has_role("System Manager")) {
 			value = dataContext.Shift
@@ -90,7 +90,7 @@ frappe.query_reports["Attendance recapitulation"] = {
 		}
 		if (columnDef.id == "Session2") {
 			if (dataContext["Session2"] === "AB") {
-				value = "<span style='color:red!important;font-weight:bold'>" + value + "</span>";
+				value = '<a onclick="frappe.query_reports[\'Attendance recapitulation\'].open_att_adjust1()"><span style="color:red!important;font-weight:bold">' + value + "</a></span>";
 			}
 			if (dataContext["Session2"] === "PR") {
 				value = "<span style='color:green!important;font-weight:bold'>" + value + "</span>";
@@ -102,7 +102,10 @@ frappe.query_reports["Attendance recapitulation"] = {
 		return value;
 	},
 	//added to block employees from accessing attendance
-	"block_employee": function (data) {},
+	"block_employee": function (data) {
+
+		
+	},
 
 	"open_att_adjust": function (data) {
 
@@ -203,12 +206,14 @@ frappe.query_reports["Attendance recapitulation"] = {
 				{ fieldtype: "Button", fieldname: "apply_leave", label: __("Apply Leave"), reqd: 0 },
 				{ fieldtype: "Button", fieldname: "apply_mr", label: __("Apply Movement Register"), reqd: 0 },
 				{ fieldtype: "Button", fieldname: "apply_tour", label: __("Apply Tour Application"), reqd: 0 },
+				{ fieldtype: "Button", fieldname: "apply_mp", label: __("Apply Missed Punch"), reqd: 0 },
 
 			],
 			primary_action: function () {
 				var status = d1.get_values()
 			}
 		})
+		
 		d1.fields_dict.apply_od.input.onclick = function () {
 			frappe.set_route("Form", "On Duty Application", "New On Duty Application", { "is_from_ar": "Yes" })
 		}
@@ -220,6 +225,11 @@ frappe.query_reports["Attendance recapitulation"] = {
 		}
 		d1.fields_dict.apply_tour.input.onclick = function () {
 			frappe.set_route("Form", "Tour Application", "New Tour Application", { "is_from_ar": "Yes" })
+		}
+		d1.fields_dict.apply_mp.input.onclick = function () {
+			var att_date = data["Attendance Date"]
+			console.log(att_date)
+			frappe.set_route("Form", "Miss Punch Application", "New Miss Punch Application", { "is_from_ar": "Yes" })
 		}
 		d1.show();
 	},

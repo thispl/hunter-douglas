@@ -104,10 +104,11 @@ doc_events = {
     # {
     #     "on_submit": "hunter_douglas.hunter_douglas.doctype.on_duty_application.on_duty_application.on_duty_mark",
     # },
-    # "Travel Management":
-    # {
-    #     "on_submit": "hunter_douglas.hunter_douglas.doctype.travel_management.travel_management.travel_att_mark",
-    # }
+    "Travel Management":
+    {
+        "on_cancel": "hunter_douglas.hunter_douglas.doctype.travel_management.travel_management.delete_tour_application",
+        # "on_submit": "hunter_douglas.hunter_douglas.doctype.travel_management.travel_management.send_ticket_copy",
+    }
     # "*": {
     # 	"on_update": "method",
     # 	"on_cancel": "method",
@@ -132,6 +133,9 @@ scheduler_events = {
         "*/15 9-11 * * *":[
             "hunter_douglas.custom.fetch_att"
         ],
+        # "0 5 25 * *":[
+        #     "hunter_douglas.custom.calculate_comp_off"
+        # ],
         # "00 10 * * *":[
         #     "hunter_douglas.custom.in_punch_alert"
         # ],

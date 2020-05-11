@@ -56,6 +56,8 @@ def execute(filters=None):
 
             holiday_date = frappe.db.get_all("Holiday", filters={'holiday_date':att.attendance_date,'parent': holiday_list},fields=['holiday_date','name','is_ph'])
             if att.in_time:
+                frappe.errprint(att.employee)
+                frappe.errprint(att.in_time)
                 dt = datetime.strptime(att.in_time, "%d/%m/%Y %H:%M:%S")
                 from_time = dt.time()
                 shift_in_time = frappe.db.get_value("Working Shift",working_shift,"in_time")
@@ -105,11 +107,16 @@ def execute(filters=None):
             if att.admin_approved_status == 'Second Half Absent':
                 early_out = timedelta(hours=1)
 
+            # if att.first_half_status == 'PR' and att.second_half_status == 'PR' and att.working_shift == 'FS3':
+            #     late_in = early_out = timedelta(seconds=0)     
+
             elif att.admin_approved_status == 'Present':
                 row += ["PR","PR"]
             
             elif att.admin_approved_status == 'Absent':
                 row += ["AB","AB"]
+
+               
 
             elif att.admin_approved_status == 'WO' or att.admin_approved_status == 'PH':
                 row += [att.admin_approved_status,att.admin_approved_status]
@@ -135,25 +142,26 @@ def execute(filters=None):
                         row += ["OD","OD"]      
                     elif coff_record[0]:
                         row += ["C-OFF","C-OFF"]  
-                    elif get_continuous_absents(att.employee,att.attendance_date):  
+                    elif get_continuous_absents(att.employee,att.attendance_date): 
                         row += ["AB","AB"] 
                     else:    
                         if h['is_ph']:
                             row[4] = "PH"
-                            # if check_prefix_suffix(att.employee,att.attendance_date):
-                            #     row += ["AB","AB"] 
-                            # else:
-                            row += ["PH","PH"]
+                            if check_prefix_suffix(att.employee,att.attendance_date):
+                                row += ["AB","AB"] 
+                            else:
+                                row += ["PH","PH"]
                             
                         else:
+                            
                             row[4] = "WO"
-                            # if check_prefix_suffix(att.employee,att.attendance_date):
-                            #     row += ["AB","AB"] 
-                            # else:
-                            row += ["WO","WO"]
+                            if check_prefix_suffix(att.employee,att.attendance_date):
+                                row += ["AB","AB"] 
+                            else:
+                                row += ["WO","WO"]
 
             elif att.status == "Absent":
-                # Check if employee on Leave
+                # Check if employee on Leavei
                 leave_record = get_leaves(att.employee,att.attendance_date)
                 tm_record = get_tm(att.employee,att.attendance_date)
                 od_record = get_od(att.employee,att.attendance_date)
@@ -165,10 +173,9 @@ def execute(filters=None):
                 
                 if leave_record[1]:
                     if leave_record[1] == 'First Half':
-                        row += [leave_record[0],"AB"]
+                        row += [leave_record[0],get_ab_sh(att.employee,att.attendance_date)]
                     elif leave_record[1] == 'Second Half':
-                        # row += ["AB",leave_record[0]] 
-                        row += [get_ab_fh(att.employee,att.attendance_date),leave_record[0]]    
+                        row += [get_ab_fh(att.employee,att.attendance_date),leave_record[0]]
                     else:
                         row += [leave_record[0],leave_record[0]]
 
@@ -199,7 +206,9 @@ def execute(filters=None):
                 #     row += ["C-OFF","C-OFF"]   
                 
                 elif att.employee in auto_present_list:
-                    row += ["PR","PR"]      
+                    row += ["PR","PR"]
+                elif att.in_time > att.out_time:
+                    row += ["PR","PR"]
                 elif not (att.in_time and att.out_time):
                     row += ["AB","AB"] 
                 else:   
@@ -217,6 +226,7 @@ def execute(filters=None):
                 od_session = get_od(att.employee,att.attendance_date)
                 coff_session = get_coff(att.employee,att.attendance_date)
                 tm_session = get_tm(att.employee,att.attendance_date)
+                
                 if leave_session[1]:
                     if leave_session[1] == "Second Half":
                         row += ["PR",leave_session[0]]
@@ -253,19 +263,15 @@ def execute(filters=None):
                         row += ["OD","OD"]      
                     else:    
                         row += [att.first_half_status,att.second_half_status]
+                elif att.in_time > att.out_time:
+                        row += ["PR","PR"]         
                 else:
-                    # if att.admin_approved_status == 'First Half Present' and att.admin_approved_status == 'Second Half Present':
-                    #      row += ["PR","PR"]
-                    # elif att.admin_approved_status == 'First Half Present':
-                    #     row += ["PR",att.second_half_status]
-                    # elif att.admin_approved_status == 'Second Half Present':
-                    #     row += [att.first_half_status,"PR"]
-                    if late_in and late_in > timedelta(minutes=15) and early_out and early_out > timedelta(minutes=5):
+                    if late_in and late_in > timedelta(minutes=16) and early_out and early_out > timedelta(minutes=6):
                         row += ["AB","AB"]
-                    elif late_in and late_in > timedelta(minutes=15):
+                    elif late_in and late_in > timedelta(minutes=16):
                         row += ["AB","PR"]
-                    elif early_out and early_out > timedelta(minutes=5):
-                        row += ["PR","AB"]
+                    elif early_out and early_out > timedelta(minutes=6):
+                        row += ["PR","AB"]   
                     else:
                         row += [att.first_half_status,att.second_half_status]        
 
@@ -287,12 +293,12 @@ def execute(filters=None):
 
                 elif leave_session[1]:
                     if leave_session[1] == "Second Half":
-                        if late_in and late_in > timedelta(minutes=15):
+                        if late_in and late_in > timedelta(minutes=16):
                             row += ["AB",leave_session[0]]
                         else:    
                             row += ["PR",leave_session[0]]
                     elif leave_session[1] == "First Half":
-                        if early_out and early_out > timedelta(minutes=5):
+                        if early_out and early_out > timedelta(minutes=6):
                             row += [leave_session[0],"AB"]  
                         else:    
                             row += [leave_session[0],"PR"]  
@@ -301,12 +307,12 @@ def execute(filters=None):
 
                 elif od_session[1]:
                     if od_session[1] == "Second Half":
-                        if late_in and late_in > timedelta(minutes=15):
+                        if late_in and late_in > timedelta(minutes=16):
                             row += ["AB",od_session[0]]
                         else:    
                             row += ["PR",od_session[0]]
                     elif od_session[1] == "First Half":
-                        if early_out and early_out > timedelta(minutes=5):
+                        if early_out and early_out > timedelta(minutes=6):
                             row += [od_session[0],"AB"]  
                         else:    
                             row += [od_session[0],"PR"]  
@@ -315,12 +321,12 @@ def execute(filters=None):
 
                 elif coff_session[1]:
                     if coff_session[1] == "Second Half":
-                        if late_in and late_in > timedelta(minutes=15):
+                        if late_in and late_in > timedelta(minutes=16):
                             row += ["AB",coff_session[0]]
                         else:    
                             row += ["PR",coff_session[0]]
                     elif coff_session[1] == "First Half":
-                        if early_out and early_out > timedelta(minutes=5):
+                        if early_out and early_out > timedelta(minutes=6):
                             row += [coff_session[0],"AB"]  
                         else:    
                             row += [coff_session[0],"PR"]  
@@ -329,40 +335,30 @@ def execute(filters=None):
 
                 elif tm_session[1]:
                     if tm_session[1] == "Second Half":
-                        if late_in and late_in > timedelta(minutes=15):
+                        if late_in and late_in > timedelta(minutes=16):
                             row += ["AB",tm_session[0]]
                         else:    
                             row += ["PR",tm_session[0]]
                     elif tm_session[1] == "First Half":
-                        if early_out and early_out > timedelta(minutes=5):
+                        if early_out and early_out > timedelta(minutes=6):
                             row += [tm_session[0],"AB"]  
                         else:    
                             row += [tm_session[0],"PR"]  
                     elif tm_session[1] == "Full Day":
-                        row += [tm_session[0],tm_session[0]]                 
+                        row += [tm_session[0],tm_session[0]]     
 
-                elif late_in and late_in > timedelta(minutes=15) and early_out and early_out > timedelta(minutes=5):
+                elif late_in and late_in > timedelta(minutes=16) and early_out and early_out > timedelta(minutes=6):
                     row += ["AB","AB"]
-                elif late_in and late_in > timedelta(minutes=15):
+                elif late_in and late_in > timedelta(minutes=16):
                     row += ["AB","PR"]
-                
-                elif early_out and early_out > timedelta(minutes=5):
+                elif early_out and early_out > timedelta(minutes=6):
                     row += ["PR","AB"]  
-                else: 
-                         
+                else:
+                    # frappe.errprint('hi')
+                    # frappe.errprint(att.attendance_date)  
                     row += ["PR","PR"]
-                # elif coff_record[0]:
-                #     row += ["C-OFF","C-OFF"]       
-                # else:
-                #     tm_record = frappe.db.sql("""select half_day from `tabTour Application`
-                #         where employee = %s and %s between from_date and to_date
-                #         and docstatus = 1""", (att.employee, att.attendance_date), as_dict=True)
-                #     if tm_record:
-                #         row += ["TR","TR"]
-                #     else:
-                #         row += ["PR","PR"]
-
-            else:row += ["-","-"]
+            else:
+                row += ["-","-"]
 
 
             # if row[5] == 'WO':
@@ -439,7 +435,7 @@ def get_columns():
     return columns
 
 def get_attendance(conditions,filters):
-    attendance = frappe.db.sql("""select att.admin_approved_status,att.late_in as late_in,att.early_out as early_out,att.first_half_status as first_half_status,att.second_half_status as second_half_status,att.name as name,att.employee_name as employee_name,att.attendance_date as attendance_date,att.work_time as work_time,att.overtime as overtime,att.employee as employee, 
+    attendance = frappe.db.sql("""select att.working_shift as working_shift, att.admin_approved_status,att.late_in as late_in,att.early_out as early_out,att.first_half_status as first_half_status,att.second_half_status as second_half_status,att.name as name,att.employee_name as employee_name,att.attendance_date as attendance_date,att.work_time as work_time,att.overtime as overtime,att.employee as employee, 
     att.employee_name as employee_name,att.status as status,att.in_time as in_time,att.out_time as out_time from `tabAttendance` att 
     left join `tabEmployee` emp on att.employee = emp.employee  
     where att.docstatus = 1 %s order by att.attendance_date,att.employee""" % conditions, filters, as_dict=1)
@@ -500,22 +496,8 @@ def get_autopresent_status(emp,day):
 
 def check_prefix_suffix(emp,day):
     previous_day = next_day = False 
-    preday = day
-    postday = day
-
-    while is_holiday(emp,preday):
-        preday = add_days(preday,-1)
-        
-    if not is_holiday(emp,preday):
-        if is_absent(emp,preday):
-            previous_day = True
-        
-    while is_holiday(emp,postday):
-        postday = add_days(postday,1)
-
-    if not is_holiday(emp,postday):
-        if is_absent(emp,postday):
-            next_day = True    
+    preday = add_days(day,-1)
+    postday = add_days(day,1)
 
     # Check if employee on Leave
     pre_leave_record = frappe.db.sql("""select half_day,from_date_session,to_date_session from `tabLeave Application`
@@ -543,52 +525,51 @@ def is_absent(emp,day):
         return True 
 
 def get_leaves(emp,day):
-    
     leave_type = from_date_session = to_date_session = leave = session = ""
     leave_record = frappe.db.sql("""select from_date,to_date,half_day,half_day_date,leave_type,from_date_session,to_date_session from `tabLeave Application`
                         where employee = %s and %s between from_date and to_date
                         and docstatus = 1 and status='Approved'""", (emp, day), as_dict=True)
     if leave_record:
-        if len(leave_record) > 1:
-            for l in leave_record:
-                leave_type = l.leave_type
-                if leave_type == "Privilege Leave":
-                    leave = ["PL"]
-                elif leave_type == "Casual Leave":
-                    leave = ["CL"]
-                elif leave_type == "Sick Leave":
-                    leave = ["SL"]
+        # if len(leave_record) > 1:
+        #     for l in leave_record:
+        #         leave_type = l.leave_type
+        #         if leave_type == "Privilege Leave":
+        #             leave = ["PL"]
+        #         elif leave_type == "Casual Leave":
+        #             leave = ["CL"]
+        #         elif leave_type == "Sick Leave":
+        #             leave = ["SL"]
+        #         else:
+        #             leave = ["LOP"]
+        #         session = "Full Day"
+        # else:       
+        for l in leave_record:
+            leave_type = l.leave_type
+            half_day = l.half_day
+            half_day_date = l.half_day_date
+            from_date = l.from_date
+            to_date = l.to_date
+            from_date_session = l.from_date_session
+            to_date_session = l.to_date_session
+            session = from_date_session
+        if leave_type == "Privilege Leave":
+            leave = ["PL"]
+        elif leave_type == "Casual Leave":
+            leave = ["CL"]
+        elif leave_type == "Sick Leave":
+            leave = ["SL"]
+        else:
+            leave = ["LOP"]      
+        if half_day: 
+            if from_date == to_date:
+                session = from_date_session 
+            else:  
+                if half_day_date == day:
+                    session = from_date_session
+                elif half_day_date == day:
+                    session = to_date_session 
                 else:
-                    leave = ["LOP"]
-                session = "Full Day"
-        else:       
-            for l in leave_record:
-                leave_type = l.leave_type
-                half_day = l.half_day
-                half_day_date = l.half_day_date
-                from_date = l.from_date
-                to_date = l.to_date
-                from_date_session = l.from_date_session
-                to_date_session = l.to_date_session
-                session = from_date_session
-            if leave_type == "Privilege Leave":
-                leave = ["PL"]
-            elif leave_type == "Casual Leave":
-                leave = ["CL"]
-            elif leave_type == "Sick Leave":
-                leave = ["SL"]
-            else:
-                leave = ["LOP"]      
-            if half_day: 
-                if from_date == to_date:
-                    session = from_date_session 
-                else:  
-                    if half_day_date == day:
-                        session = from_date_session
-                    elif half_day_date == day:
-                        session = to_date_session 
-                    else:
-                        session = leave
+                    session = leave
     return leave,session
 
 def get_tm(emp,day):
@@ -691,15 +672,40 @@ def get_coff(emp,day):
 
 def get_ab_fh(emp,day):
     from_date_session = to_date_session = coff = session = ""
-    for apps in ['tabCompensatory Off Application']:
+    status = 'AB'
+    for apps in ['tabCompensatory Off Application','tabOn Duty Application','tabTour Application']:
         query = """select half_day from `%s`
                             where employee = '%s' and from_date = '%s'  and docstatus = 1 and status='Approved' and half_day=1 and from_date_session='First Half'""" % (apps,emp, day)
         record = frappe.db.sql(query, as_dict=True)
-        if record:            
+        if record and apps == 'tabCompensatory Off Application':            
+            status = ["COFF"]  
+            return status 
+        elif record and apps == 'tabOn Duty Application':
+            status = ["OD"]
+            return status 
+        elif record and apps == 'tabTour Application':
+            status = ["TR"]   
+            return status   
+    return status    
+    
+
+def get_ab_sh(emp,day):
+    from_date_session = to_date_session = coff = session = ""
+    status = 'AB'
+    for apps in ['tabCompensatory Off Application','tabOn Duty Application','tabTour Application']:
+        query = """select half_day from `%s`
+                            where employee = '%s' and from_date = '%s'  and docstatus = 1 and status='Approved' and half_day=1 and from_date_session='Second Half'""" % (apps,emp, day)
+        record = frappe.db.sql(query, as_dict=True)
+        if record and apps == 'tabCompensatory Off Application':            
             status = ["COFF"]   
-        else:
-            status = 'AB'      
-    return status
+            return status
+        elif record and apps == 'tabOn Duty Application':
+            status = ["OD"] 
+            return status
+        elif record and apps == 'tabTour Application':
+            status = ["TR"] 
+            return status        
+    return status    
     # tm_record = frappe.db.sql("""select half_day from `tabTour Application`
     #                 where employee = %s and %s between from_date and to_date
     #                 and docstatus = 1 and status='Approved' """, (emp, day), as_dict=True) 
@@ -860,7 +866,7 @@ def get_holiday_list_for_employee(employee, raise_exception=True):
         company=frappe.db.get_value("Global Defaults", None, "default_company")
 
     if not holiday_list:
-        holiday_list = frappe.get_cached_value('Company',  company,  "default_holiday_list")
+        holiday_list = frappe.get_value('Company',  company,  "default_holiday_list")
 
     if not holiday_list and raise_exception:
         frappe.throw(_('Please set a default Holiday List for Employee {0} or Company {1}').format(employee, company))

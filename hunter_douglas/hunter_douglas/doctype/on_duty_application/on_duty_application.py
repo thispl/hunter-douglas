@@ -5,7 +5,7 @@
 from __future__ import unicode_literals
 import frappe
 from frappe.model.document import Document
-from datetime import datetime,timedelta
+from datetime import datetime,timedelta,date
 from frappe import _
 from frappe.utils import today,flt,add_days,date_diff,getdate,cint,formatdate, getdate, get_link_to_form, \
     comma_or, get_fullname
@@ -212,3 +212,15 @@ def check_attendance(employee, from_date, to_date):
                     where employee = %s and attendance_date between %s and %s
                     and docstatus = 1""", (employee, from_date, to_date), as_dict=True)
         return attendance
+
+@frappe.whitelist()
+def validate_cutoff(from_date):
+    cur_mon = datetime.strptime(today(), "%Y-%m-%d").strftime("%B")
+    frappe.errprint(cur_mon)
+    c = frappe.get_value("Application Cut Off Date",{'month':cur_mon},['cut_off_date','from_date','to_date'])
+    curday = date.today()
+    fromdate = datetime.strptime(str(from_date),"%Y-%m-%d").date()
+    if fromdate < c[1]:
+        return 'Expired'
+    if fromdate > c[1] and fromdate < c[2]:
+        frappe.errprint('true')

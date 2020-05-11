@@ -12,7 +12,7 @@ frappe.ui.form.on('Leave Approval', {
 			args: {
 				"doctype": "Leave Application",
 				filters: { "docstatus": 0, "status": ["in",["Applied","Approved"]] },
-				limit_page_lengt:50
+				limit_page_length:50
 			},
 			callback: function (r) {
 				if (r.message) {
@@ -52,7 +52,7 @@ frappe.ui.form.on('Leave Approval', {
 			args: {
 				"doctype": "Leave Application",
 				filters: { "docstatus": 1, "status": "Approved" },
-				limit_page_lengt:50
+				limit_page_length:50
 			},
 			callback: function (r) {
 				if (r.message) {
@@ -135,7 +135,7 @@ frappe.ui.form.on('Leave Approval', {
 			args: {
 				"doctype": "Leave Application",
 				filters: { "docstatus": 0, "status": "Applied", "from_date":['>=',frm.doc.from_date],"to_date":['<=',frm.doc.to_date] },
-				limit_page_lengt:50
+				limit_page_length:50
 			},
 			callback: function (r) {
 				if (r.message) {
@@ -173,7 +173,7 @@ frappe.ui.form.on('Leave Approval', {
 			args: {
 				"doctype": "Leave Application",
 				filters: { "docstatus": 1, "status": "Approved", "from_date":['>=',frm.doc.from_date],"to_date":['<=',frm.doc.to_date] },
-				limit_page_lengt:50
+				limit_page_length:50
 			},
 			callback: function (r) {
 				if (r.message) {

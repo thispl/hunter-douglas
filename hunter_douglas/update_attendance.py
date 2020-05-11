@@ -340,7 +340,6 @@ def get_att_data(employee,attendance_date,working_shift,in_time,out_time,status)
 
 
 def get_mr_out(emp,day):
-    print emp,day
     from_time = to_time = 0
     day = (datetime.strptime(str(day), '%Y-%m-%d')).date()
     dt = datetime.combine(day, datetime.min.time())
@@ -746,15 +745,11 @@ def verify_other_docs(employee,doc_date,session):
                     return False
 
 @frappe.whitelist()
-def temp_att():
-    from_date = '2019-07-25'
-    to_date = '2019-08-24'
-    emp = '1296'
-    # from_date = '2019-04-03'
-    # to_date = '2019-04-03'
-    attendance = frappe.db.sql("""select att.name as name,att.status as status,att.admin_approved_status,att.late_in as late_in,att.early_out as early_out,att.first_half_status as first_half_status,att.second_half_status as second_half_status,att.name as name,att.employee_name as employee_name,att.attendance_date as attendance_date,att.work_time as work_time,att.overtime as overtime,att.employee as employee, att.employee_name as employee_name,att.status as status,att.in_time as in_time,att.out_time as out_time from `tabAttendance` att 
-    where att.admin_approved_status is null and docstatus = 1 and att.attendance_date between %s and %s""",(from_date,to_date) ,as_dict=1)
-    print len(attendance)
+def mark_hd():
+    from_date = '2019-11-25'
+    to_date = '2019-12-24'
+    attendance = frappe.db.sql("""select att.working_shift as working_shift,att.name as name,att.status as status,att.admin_approved_status,att.late_in as late_in,att.early_out as early_out,att.first_half_status as first_half_status,att.second_half_status as second_half_status,att.name as name,att.employee_name as employee_name,att.attendance_date as attendance_date,att.work_time as work_time,att.overtime as overtime,att.employee as employee, att.employee_name as employee_name,att.status as status,att.in_time as in_time,att.out_time as out_time from `tabAttendance` att 
+    where att.admin_approved_status is null and docstatus = 1 and att.attendance_date between %s and %s order by att.attendance_date""",(from_date,to_date),as_dict=1)
     for att in attendance:
         if att:
             addnl_work_time = timedelta(seconds=0)
@@ -805,8 +800,11 @@ def temp_att():
                 late_in = timedelta(seconds=0)  
             if att.admin_approved_status == 'Second Half Present':
                 early_out = timedelta(seconds=0) 
+            if att.first_half_status == 'PR' and att.second_half_status == 'PR' and att.working_shift == 'FS3':
+                late_in = early_out = timedelta(seconds=0)
 
             if att.status == "Present" or att.status == "Half Day":
+                print att.status,att.employee,att.attendance_date
                 exc = frappe.db.get_list("Auto Present Employees",fields=['employee'])
                 auto_present_list = []
                 for e in exc:
@@ -821,7 +819,6 @@ def temp_att():
                     shs = 'PR'
                     status = 'Half Day'
                 elif early_out and early_out > timedelta(minutes=5):
-                    
                     fhs = 'PR'
                     shs = 'AB'
                     status = 'Half Day'
@@ -831,7 +828,104 @@ def temp_att():
             update_wt = att.work_time
             if addnl_work_time:
                 update_wt = att.work_time + addnl_work_time
-            print att.attendance_date,update_wt     
+            att_id = frappe.get_doc("Attendance",att.name)   
+            att_id.update({
+                "status":status,
+                "first_half_status":fhs,
+                "second_half_status":shs,
+                "work_time":update_wt
+            })    
+            att_id.db_update()
+            frappe.db.commit() 
+
+
+@frappe.whitelist()
+def temp_att():
+    from_date = '2019-09-25'
+    to_date = '2019-10-24'
+    emp = '2037'
+    # from_date = '2019-04-03'
+    # to_date = '2019-04-03'
+    attendance = frappe.db.sql("""select att.working_shift as working_shift,att.name as name,att.status as status,att.admin_approved_status,att.late_in as late_in,att.early_out as early_out,att.first_half_status as first_half_status,att.second_half_status as second_half_status,att.name as name,att.employee_name as employee_name,att.attendance_date as attendance_date,att.work_time as work_time,att.overtime as overtime,att.employee as employee, att.employee_name as employee_name,att.status as status,att.in_time as in_time,att.out_time as out_time from `tabAttendance` att 
+    where att.admin_approved_status is null and docstatus = 1 and att.attendance_date between %s and %s order by att.attendance_date""",(from_date,to_date) ,as_dict=1)
+    for att in attendance:
+        if att:
+            addnl_work_time = timedelta(seconds=0)
+            status = att.status
+            fhs = att.first_half_status
+            shs = att.second_half_status
+            late_in = att.late_in
+            early_out = att.early_out       
+            working_shift = frappe.db.get_value("Employee", {'employee':att.employee},['working_shift']) 
+            assigned_shift = frappe.db.sql("""select shift from `tabShift Assignment`
+                        where employee = %s and %s between from_date and to_date""", (att.employee, att.attendance_date), as_dict=True)
+            if assigned_shift:
+                working_shift = assigned_shift[0]['shift']            
+            if att.in_time:
+                dt = datetime.strptime(att.in_time, "%d/%m/%Y %H:%M:%S")
+                from_time = dt.time()
+                shift_in_time = frappe.db.get_value("Working Shift",working_shift,"in_time")
+                emp_in_time = timedelta(hours=from_time.hour,minutes=from_time.minute,seconds=from_time.second)
+                #Check Movement Register
+                if get_mr_in(att.employee,att.attendance_date):
+                    mr_status_in = True
+                    addnl_work_time += get_mr_in(att.employee,att.attendance_date)
+                    emp_in_time = emp_in_time - get_mr_in(att.employee,att.attendance_date)
+                
+                if emp_in_time > shift_in_time:
+                    late_in = emp_in_time - shift_in_time
+                else:
+                    late_in = timedelta(seconds=0)  
+
+            if att.out_time:
+                dt = datetime.strptime(att.out_time, "%d/%m/%Y %H:%M:%S")
+                end_time = dt.time()
+                shift_out_time = frappe.db.get_value("Working Shift",working_shift,"out_time")
+                emp_out_time = timedelta(hours=end_time.hour,minutes=end_time.minute,seconds=end_time.second)
+                #Check Movement Register
+                if get_mr_out(att.employee,att.attendance_date):
+                    mr_status_out = True
+                    addnl_work_time += get_mr_out(att.employee,att.attendance_date)
+                    emp_out_time = emp_out_time + get_mr_out(att.employee,att.attendance_date)
+                if emp_out_time < shift_out_time:
+                    early_out = shift_out_time - emp_out_time
+                else:
+                    early_out = timedelta(seconds=0)
+
+            if att.admin_approved_status == 'Present':
+                late_in = early_out = timedelta(seconds=0)
+            if att.admin_approved_status == 'First Half Present':
+                late_in = timedelta(seconds=0)  
+            if att.admin_approved_status == 'Second Half Present':
+                early_out = timedelta(seconds=0) 
+            if att.first_half_status == 'PR' and att.second_half_status == 'PR' and att.working_shift == 'FS3':
+                late_in = early_out = timedelta(seconds=0)
+
+            if att.status == "Present" or att.status == "Half Day":
+                print att.status,att.employee,att.attendance_date
+                exc = frappe.db.get_list("Auto Present Employees",fields=['employee'])
+                auto_present_list = []
+                for e in exc:
+                    auto_present_list.append(e.employee)
+                if att.employee in auto_present_list:
+                    fhs = shs = 'PR'
+                elif late_in and late_in > timedelta(minutes=15) and early_out and early_out > timedelta(minutes=5):
+                    fhs = shs = 'AB'
+                    status = 'Absent'
+                elif late_in and late_in > timedelta(minutes=15):
+                    fhs = 'AB'
+                    shs = 'PR'
+                    status = 'Half Day'
+                elif early_out and early_out > timedelta(minutes=5):
+                    fhs = 'PR'
+                    shs = 'AB'
+                    status = 'Half Day'
+                else:    
+                    fhs = shs = 'PR'  
+                    status = 'Present'
+            update_wt = att.work_time
+            if addnl_work_time:
+                update_wt = att.work_time + addnl_work_time
             att_id = frappe.get_doc("Attendance",att.name)   
             att_id.update({
                 "status":status,

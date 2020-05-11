@@ -118,6 +118,7 @@ def get_attendance(conditions,filters):
 
 def get_conditions(filters):
     conditions = ""
+    if filters.get("employee"):conditions += "and att.employee = %(employee)s"
     if filters.get("from_date"): conditions += "and att.attendance_date >= %(from_date)s"
     if filters.get("to_date"): conditions += " and att.attendance_date <= %(to_date)s"
     if filters.get("location"): conditions += " and att.location = %(location)s"  

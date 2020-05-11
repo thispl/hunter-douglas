@@ -3,6 +3,7 @@
 
 frappe.ui.form.on('Tour Application', {
 	refresh: function(frm) {
+        frm.trigger("calculate_total_days")
         if(frm.doc.is_from_ar){
             frm.add_custom_button(__('Back'), function () {
                 frappe.set_route("query-report", "Attendance recapitulation")

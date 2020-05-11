@@ -21,6 +21,19 @@ import dateutil.parser
 
 
 @frappe.whitelist()
+def check_appraisal(emp,year):
+    if frappe.db.exists("Performance Management Self", {"employee_code1": emp, "appraisal_year": year,"docstatus":1}):
+        return year
+
+@frappe.whitelist()
+def get_previous_year_goals(emp,year):
+    pm = frappe.db.exists("Performance Management Self",{"employee_code1": emp, "appraisal_year": year})
+    if pm:
+        return pm
+    else:
+        return 'NA'    
+
+@frappe.whitelist()
 def fetch_att_test(from_date,to_date,employee=None,department=None,designation=None,location=None):
     frappe.errprint(from_date)
     employees = []
@@ -163,6 +176,8 @@ def fetch_att_test(from_date,to_date,employee=None,department=None,designation=N
                                         "attendance_date": date_f,
                                         "status": status,
                                         "in_time": in_time,
+                                        "first_half_status":first_half_status,
+                                        "second_half_status":second_half_status,
                                         "late_in" : late_in,
                                         "early_out" : early_out,
                                         "working_shift" : working_shift,
@@ -266,7 +281,7 @@ def fetch_att():
                         first_half_status = att.find('firsthalf').text
                         second_half_status = att.find('secondhalf').text
                         if flt(att.find('WorkTime').text) > 1440:
-                                work_time = timedelta(minutes=flt('1400'))
+                            work_time = timedelta(minutes=flt('1400'))
                         else:
                             work_time = timedelta(minutes=flt(att.find('WorkTime').text)) 
                         over_time = timedelta(minutes=flt(att.find('Overtime').text))
@@ -332,25 +347,27 @@ def fetch_employee():
     root = ET.fromstring(r.content)
     for emp in root.findall('user'):
         reference_code = emp.find('reference-code').text
-        if reference_code == "1324":
-            if not frappe.db.exists("Employee",reference_code):
-                employee = frappe.new_doc("Employee")
+        # if reference_code == "2057":
+        if not frappe.db.exists("Employee",reference_code):
+            employee = frappe.new_doc("Employee")
+            employee.update({
+                "employee_name": emp.find('name').text,
+                "employee_number": emp.find('reference-code').text,
+                "gender" : "Male",
+                "reports_to" : emp.find('rg_incharge_1').text,
+                "leave_approver": emp.find('rg_incharge_1').text,
+                # "prefered_contact_email": emp.find('official-email').text,
+                "passport_number":emp.find('passport-no').text,
+                "pf_number":emp.find('pf-no').text,
+                "pan_number":emp.find('pan').text,
+                "uan_number":emp.find('uan').text
+            })
+            if emp.find('joining-date').text != None:
                 employee.update({
-                    "employee_name": emp.find('name').text,
-                    "employee_number": emp.find('reference-code').text,
-                    "date_of_joining": (datetime.strptime(emp.find('joining-date').text, '%d%m%Y')).date(),
-                    # "date_of_birth" : emp.find('date-of-birth').text,
-                    "gender" : "Male",
-                    "reports_to" : emp.find('rg_incharge_1').text,
-                    "leave_approver": emp.find('rg_incharge_1').text,
-                    # "prefered_contact_email": emp.find('official-email').text,
-                    "passport_number":emp.find('passport-no').text,
-                    "pf_number":emp.find('pf-no').text,
-                    "pan_number":emp.find('pan').text,
-                    "uan_number":emp.find('uan').text
+                  "date_of_joining": (datetime.strptime(emp.find('joining-date').text, '%d%m%Y')).date(),
                 })
-                employee.save(ignore_permissions=True)
-                frappe.db.commit()
+            employee.save(ignore_permissions=True)
+            frappe.db.commit()
         
 
 
@@ -479,7 +496,6 @@ def update_travel_approval(doc,status):
     tm.update({
         "status":status
     })
-    frappe.errprint(tm.status)
     tm.save(ignore_permissions=True)
     tm.submit()
     frappe.db.commit()
@@ -494,10 +510,11 @@ def update_travel_approval(doc,status):
     frappe.db.commit()
 
 @frappe.whitelist()
-def update_expense_approval(doc,status):
+def update_expense_approval(doc,status,approval_status):
     tm = frappe.get_doc("Expense Claim",doc)  
     tm.update({
-        "workflow_state":status
+        "workflow_state":status,
+        "approval_status":approval_status
     })
     tm.save(ignore_permissions=True)
     # tm.submit()
@@ -508,7 +525,7 @@ def update_tour_approval(doc,status):
     tm = frappe.get_doc("Tour Application",doc)  
     tm.update({
         "status":status
-    })
+    })    
     tm.save(ignore_permissions=True)
     tm.submit()
     frappe.db.commit()
@@ -785,8 +802,8 @@ def calculate_comp_off():
     #                 })
     #                 coff.save(ignore_permissions=True)
     #                 frappe.db.commit()
-    from_date = (datetime.strptime('2019-07-25', '%Y-%m-%d')).date()
-    to_date = (datetime.strptime('2019-08-24', '%Y-%m-%d')).date()
+    from_date = (datetime.strptime('2019-10-25', '%Y-%m-%d')).date()
+    to_date = (datetime.strptime('2019-12-24', '%Y-%m-%d')).date()
     for preday in daterange(from_date,to_date):
         employee = frappe.db.sql("""select name,employee_name,department,designation,category from `tabEmployee`
                             where status ="Active" and coff_eligible=1 """, as_dict=True)
@@ -802,21 +819,22 @@ def calculate_comp_off():
                                 where employee = %s and %s between from_date and to_date""", (emp.name, preday), as_dict=True)
             if assigned_shift:
                 ews = assigned_shift[0]['shift']
-            ws = frappe.get_doc("Working Shift", ews)    
-            actual_in_time = ws.out_time
-            actual_out_time = ws.in_time
-            actual_work_hours = ws.out_time - ws.in_time
-            print emp.name,preday,actual_work_hours
-            if frappe.db.exists("Attendance", {"employee":emp.name,"attendance_date": preday}):
-                attendance = frappe.get_doc("Attendance", {"employee":emp.name,"attendance_date": preday})
-                if attendance.work_time > actual_work_hours:
-                    ot = attendance.work_time - actual_work_hours
-                    if emp.category == "Management Staff":
-                        if ot > (timedelta(hours = 3)):
-                            calculate_ot(emp.name,preday,ot)
-                    else:
-                        if ot > (timedelta(hours = 2)):
-                            calculate_ot(emp.name,preday,ot)
+            ws = frappe.get_doc("Working Shift", ews)  
+            if not ws.name == 'FS4':
+                actual_in_time = ws.out_time
+                actual_out_time = ws.in_time
+                actual_work_hours = ws.out_time - ws.in_time
+                if frappe.db.exists("Attendance", {"employee":emp.name,"attendance_date": preday}):
+                    attendance = frappe.get_doc("Attendance", {"employee":emp.name,"attendance_date": preday})
+                    if attendance.work_time > actual_work_hours:
+                        ot = attendance.work_time - actual_work_hours
+                        print emp.name,preday,ot
+                        if emp.category == "Management Staff":
+                            if ot > (timedelta(hours = 3)):
+                                calculate_ot(emp.name,preday,ot)
+                        else:
+                            if ot > (timedelta(hours = 2)):
+                                calculate_ot(emp.name,preday,ot)
 
 def update_comp_off(doc,method):
     emp = doc.employee
@@ -888,6 +906,11 @@ def get_coff(employee):
         return coff_hours
     else:
         return "No Data"
+@frappe.whitelist()
+def att_permission(employee):
+    if frappe.db.exists("Attendance",{"employee":employee}):
+        # att = frappe.get_value("Attendance",{"employee":emttendance_date'])
+        frappe.errprint(att)
 
 @frappe.whitelist()
 def att_adjust(employee,attendance_date,name,in_time,out_time,status_p,status_a,status_ph,status_wo,status_first_half_present,status_second_half_present,status_first_half_absent,status_second_half_absent):
@@ -1222,11 +1245,14 @@ def updated_att_adjust():
 
 
 @frappe.whitelist()
-def bulk_att_adjust(employee,from_date,to_date,status):
-    if employee:
-        att = frappe.db.sql("""select name from `tabAttendance`
-                where employee=%s
-                and attendance_date between %s and %s""", (employee, from_date, to_date), as_dict=1)
+def bulk_att_adjust(from_date,to_date,status,location=None,employee=None):
+    if location:
+        att = frappe.db.sql("""
+        select `tabAttendance`.name from `tabAttendance` 
+        join `tabEmployee` on `tabEmployee`.name = `tabAttendance`.employee 
+        where 
+        `tabEmployee`.location_name = %s
+        and `tabAttendance`.attendance_date between %s and %s""", (location,from_date, to_date), as_dict=1)
         for a in att:
             if a:
                 att = frappe.get_doc("Attendance",a)
@@ -1238,6 +1264,21 @@ def bulk_att_adjust(employee,from_date,to_date,status):
                     att.save(ignore_permissions=True)
                     frappe.db.commit()
         return True
+    if employee:
+        att = frappe.db.sql("""select name from `tabAttendance`
+                where employee=%s
+                and attendance_date between %s and %s""", (employee,from_date, to_date), as_dict=1)
+        for a in att:
+            if a:
+                att = frappe.get_doc("Attendance",a)
+                if att:
+                    att.update({
+                        "admin_approved_status": status
+                    })
+                    frappe.errprint(att.admin_approved_status)
+                    att.save(ignore_permissions=True)
+                    frappe.db.commit()
+        return True    
 
 # @frappe.whitelist()
 # def bulk_admin_att():

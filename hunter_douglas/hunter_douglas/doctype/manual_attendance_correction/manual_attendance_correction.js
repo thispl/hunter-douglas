@@ -29,6 +29,25 @@ frappe.ui.form.on('Manual Attendance Correction', {
 					"to_date": frm.doc.to_date,
 					"status": frm.doc.status
 				},
+				freeze:true,
+				freeze_message:__('Processing...'),
+				callback:function(r){
+					show_alert(__("Attendance Updated"))
+					setTimeout(function() { location.reload() }, 500);
+				}
+			})
+		}
+		if((frm.doc.location) && (frm.doc.from_date) &&  (frm.doc.to_date)){
+			frappe.call({
+				method:"hunter_douglas.custom.bulk_att_adjust",
+				args: {
+					'location': frm.doc.location,
+					'from_date':frm.doc.from_date,
+					"to_date": frm.doc.to_date,
+					"status": frm.doc.status
+				},
+				freeze:true,
+				freeze_message:__('Processing...'),
 				callback:function(r){
 					show_alert(__("Attendance Updated"))
 					setTimeout(function() { location.reload() }, 500);

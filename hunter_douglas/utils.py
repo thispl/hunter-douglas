@@ -192,8 +192,19 @@ def daterange(date1,date2):
     for n in range(int ((date2 - date1).days)+1):
         yield date1 + timedelta(n)
 
-
-
-
+@frappe.whitelist()
+def mark_exp_paid(names,paid_date):
+    names = json.loads(names)
+    for name in names:
+        exp = frappe.get_doc("Expense Claim",name)
+        if exp.is_paid == 0 and exp.docstatus == 1 and exp.approval_status == 'Approved':
+            exp.update({
+                "is_paid": 1,
+                "paid_date":paid_date,
+                "workflow_state":'Claim Paid'
+            })
+            exp.save(ignore_permissions=True)
+            # emp.submit()
+            frappe.db.commit()
 
 

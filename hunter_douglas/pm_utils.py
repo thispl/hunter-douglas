@@ -1,8 +1,23 @@
+# -*- coding: utf-8 -*-
+# Copyright (c) 2017, VHRS and contributors
+# For license information, please see license.txt
+
+from __future__ import unicode_literals
+import frappe,os,base64
+import requests
+import datetime
+import json,calendar
+from datetime import datetime,timedelta,date,time
+import datetime as dt
+from frappe.utils import cint,today,flt,date_diff,add_days,add_months,date_diff,getdate,formatdate,cint,cstr
+from frappe.desk.notifications import delete_notification_count_for
+from frappe import _
+
 @frappe.whitelist()
 def update_pm_manager(doc, method):
     if doc.manager:
         pmm = frappe.db.get_value("Performance Management Manager", {
-                                      "employee_code": doc.employee_code})
+                                      "employee_code": doc.employee_code,"appraisal_year":doc.appraisal_year})
         if pmm:
             epmm = frappe.get_doc("Performance Management Manager", pmm)
         else:
@@ -80,7 +95,7 @@ def update_pm_manager(doc, method):
         epmm.save(ignore_permissions=True)
     else:
         pmm = frappe.db.get_value("Performance Management HOD", {
-                                      "employee_code": doc.employee_code})
+                                      "employee_code": doc.employee_code,"appraisal_year":doc.appraisal_year})
         if pmm:
             epmm = frappe.get_doc("Performance Management HOD", pmm)
         else:
@@ -106,10 +121,10 @@ def update_pm_manager(doc, method):
             "small_text_14": doc.small_text_14,
             "small_text_16": doc.small_text_16,
             "small_text_18": doc.small_text_18,
-            "potential": "NA",
-            "performance": "NA",
-            "promotion": "NA",
-            "any_other_observations": "NA",
+            "potential": "-",
+            "performance": "-",
+            "promotion": "-",
+            "any_other_observations": "-",
             "required__job_knowledge": doc.required__job_knowledge,
             "training_required_to_enhance_job_knowledge": doc.training_required_to_enhance_job_knowledge,
             "required_skills": doc.required_skills,
@@ -128,7 +143,7 @@ def update_pm_manager(doc, method):
         for c in child1:
             epmm.append("job_analysis",{
                 "appraisee_remarks": c.appraisee_remarks,
-                "appraiser_remarks": "NA"
+                "appraiser_remarks": "-"
             })
         epmm.set('competency_assessment1', [])
         child2 = doc.competency_assessment1
@@ -137,7 +152,7 @@ def update_pm_manager(doc, method):
                 "competency": c.competency,
                 "weightage": c.weightage,
                 "appraisee_weightage": c.appraisee_weightage,
-                "manager": "NA",
+                "manager": "-",
                 "hod": c.appraisee_weightage
             })
         epmm.set('key_result_area', [])
@@ -149,7 +164,7 @@ def update_pm_manager(doc, method):
                 "weightage_w_100": c.weightage_w_100,
                 "self_rating": c.self_rating,
                 "weightage": c.weightage,
-                "manager": "NA",
+                "manager": "-",
                 "hod": c.self_rating
             })
         epmm.set('key_results_area', [])
@@ -166,7 +181,7 @@ def update_pm_manager(doc, method):
         # child5 = doc.employee_feedback
         for c in range(5):
             epmm.append("employee_feedback",{
-                "appraisee_remarks": "NA"
+                "appraisee_remarks": "-"
             })
         epmm.save(ignore_permissions=True)
 
@@ -176,7 +191,7 @@ def update_pm_manager(doc, method):
 def update_pm_hod(doc, method):
     if doc.manager == frappe.session.user:
         pmm = frappe.db.get_value("Performance Management HOD", {
-                                      "employee_code": doc.employee_code})
+                                      "employee_code": doc.employee_code,"appraisal_year":doc.appraisal_year})
         if pmm:
             epmm = frappe.get_doc("Performance Management HOD", pmm)
         else:
@@ -206,6 +221,10 @@ def update_pm_hod(doc, method):
             "performance": doc.performance,
             "promotion": doc.promotion,
             "any_other_observations": doc.any_other_observations,
+            "potential_hod": doc.potential,
+            "performance_hod": doc.performance,
+            "promotion_hod": doc.promotion,
+            "any_other_observations_hod": doc.any_other_observations,
             "required__job_knowledge": doc.required__job_knowledge,
             "training_required_to_enhance_job_knowledge": doc.training_required_to_enhance_job_knowledge,
             "required_skills": doc.required_skills,
@@ -273,7 +292,7 @@ def update_pm_hod(doc, method):
 def update_pm_reviewer(doc, method):
     if doc.hod:
         pmm = frappe.db.get_value("Performance Management Reviewer", {
-                                        "employee_code": doc.employee_code})
+                                        "employee_code": doc.employee_code,"appraisal_year":doc.appraisal_year})
         if pmm:
             epmm = frappe.get_doc("Performance Management Reviewer", pmm)
         else:
@@ -358,6 +377,7 @@ def update_pm_reviewer(doc, method):
                 "goal_setting_for_last_year": c.goal_setting_for_last_year,
                 "performance_measure": c.performance_measure,
                 "weightage_w_100": c.weightage_w_100,
+                "weighted_score": c.weightage,
             })
         epmm.set('employee_feedback', [])
         child5 = doc.employee_feedback
@@ -366,120 +386,299 @@ def update_pm_reviewer(doc, method):
                 "appraisee_remarks": c.appraisee_remarks,
                 "hod": c.hod
             })
-        employeedoc = frappe.get_doc("Employee",doc.employee_code)
-        if employeedoc:
-            epmm.set('management_pm_details', [])
-            child6 = employeedoc.management_pm_details
-            for c in child6:
-                epmm.append("management_pm_details",{
-                    "year": c.year,
-                    "hike": c.hike
-                })
+        pm = frappe.db.exists("Performance Management Reviewer",{"employee_code": doc.employee_code,"appraisal_year":(cint(doc.appraisal_year) - 1)})
+        if pm:
+            employeedoc = frappe.get_doc("Performance Management Reviewer",pm)
+            if employeedoc:
+                epmm.set('management_pm_details', [])
+                child6 = employeedoc.management_pm_details
+                for c in child6:
+                    epmm.append("management_pm_details",{
+                        "year": c.year,
+                        "hike": c.hike
+                    })
+        epmm.save(ignore_permissions=True)
+
+
+@frappe.whitelist()
+def update_self_to_manager():
+    self_list = ["PMS0177"]
+    for s in self_list:
+        doc = frappe.get_doc("Performance Management Self", s)
+        # if doc.manager:
+        pmm = frappe.db.get_value("Performance Management Manager", {
+                                    "employee_code": doc.employee_code,"appraisal_year":doc.appraisal_year})
+        if pmm:
+            epmm = frappe.get_doc("Performance Management Manager", pmm)
+        else:
+            epmm = frappe.new_doc("Performance Management Manager")
+        epmm.update({
+            "employee_code": doc.employee_code,
+            "employee_code1": doc.employee_code,
+            "cost_code": doc.cost_code,
+            "department": doc.department,
+            "year_of_last_promotion": doc.year_of_last_promotion,
+            "business_unit": doc.business_unit,
+            "grade": doc.grade,
+            "employee_name": doc.employee_name,
+            "manager": doc.manager,
+            "hod": doc.hod,
+            "reviewer": doc.reviewer,
+            "designation": doc.designation,
+            "date_of_joining": doc.date_of_joining,
+            "appraisal_year": doc.appraisal_year,
+            "location": doc.location,
+            "no_of_promotion": doc.no_of_promotion,
+            "small_text_12": doc.small_text_12,
+            "small_text_14": doc.small_text_14,
+            "small_text_16": doc.small_text_16,
+            "small_text_18": doc.small_text_18,
+            "required__job_knowledge": doc.required__job_knowledge,
+            "training_required_to_enhance_job_knowledge": doc.training_required_to_enhance_job_knowledge,
+            "required_skills": doc.required_skills,
+            "training_required__to_enhance_skills_competencies": doc.training_required__to_enhance_skills_competencies
+        })
+        epmm.set('sales_target', [])
+        child = doc.sales_target
+        for c in child:
+            epmm.append("sales_target",{
+                "year": c.year,
+                "actual_targets": c.actual_targets,
+                "attained_targets": c.attained_targets
+            })
+        epmm.set('job_analysis', [])
+        child1 = doc.job_analysis
+        for c in child1:
+            epmm.append("job_analysis",{
+                "appraisee_remarks": c.appraisee_remarks
+            })
+        epmm.set('competency_assessment1', [])
+        child2 = doc.competency_assessment1
+        for c in child2:
+            epmm.append("competency_assessment1",{
+                "competency": c.competency,
+                "weightage": c.weightage,
+                "appraisee_weightage": c.appraisee_weightage,
+                "manager": c.appraisee_weightage
+            })
+        epmm.set('key_result_area', [])
+        child3 = doc.key_result_area
+        for c in child3:
+            epmm.append("key_result_area",{
+                "goal_setting_for_current_year": c.goal_setting_for_current_year,
+                "performance_measure": c.performance_measure,
+                "weightage_w_100": c.weightage_w_100,
+                "self_rating": c.self_rating,
+                "manager": c.self_rating,
+                "weightage": c.weightage,
+            })
+        epmm.set('key_results_area', [])
+        child4 = doc.key_results_area
+        for c in child4:
+            epmm.append("key_results_area",{
+                "goal_setting_for_last_year": c.goal_setting_for_last_year,
+                "performance_measure": c.performance_measure,
+                "weightage_w_100": c.weightage_w_100,
+                "self_rating": c.self_rating,
+                "weightage": c.weightage,
+            })
+        epmm.save(ignore_permissions=True)
+    else:
+        pmm = frappe.db.get_value("Performance Management HOD", {
+                                    "employee_code": doc.employee_code,"appraisal_year":doc.appraisal_year})
+        if pmm:
+            epmm = frappe.get_doc("Performance Management HOD", pmm)
+        else:
+            epmm = frappe.new_doc("Performance Management HOD")
+        epmm.update({
+            "employee_code": doc.employee_code,
+            "employee_code1": doc.employee_code,
+            "cost_code": doc.cost_code,
+            "department": doc.department,
+            "year_of_last_promotion": doc.year_of_last_promotion,
+            "business_unit": doc.business_unit,
+            "grade": doc.grade,
+            "employee_name": doc.employee_name,
+            "manager": doc.manager,
+            "hod": doc.hod,
+            "reviewer": doc.reviewer,
+            "designation": doc.designation,
+            "date_of_joining": doc.date_of_joining,
+            "appraisal_year": doc.appraisal_year,
+            "location": doc.location,
+            "no_of_promotion": doc.no_of_promotion,
+            "small_text_12": doc.small_text_12,
+            "small_text_14": doc.small_text_14,
+            "small_text_16": doc.small_text_16,
+            "small_text_18": doc.small_text_18,
+            "potential": "-",
+            "performance": "-",
+            "promotion": "-",
+            "any_other_observations": "-",
+            "required__job_knowledge": doc.required__job_knowledge,
+            "training_required_to_enhance_job_knowledge": doc.training_required_to_enhance_job_knowledge,
+            "required_skills": doc.required_skills,
+            "training_required__to_enhance_skills_competencies": doc.training_required__to_enhance_skills_competencies
+        })
+        epmm.set('sales_target', [])
+        child = doc.sales_target
+        for c in child:
+            epmm.append("sales_target",{
+                "year": c.year,
+                "actual_targets": c.actual_targets,
+                "attained_targets": c.attained_targets
+            })
+        epmm.set('job_analysis', [])
+        child1 = doc.job_analysis
+        for c in child1:
+            epmm.append("job_analysis",{
+                "appraisee_remarks": c.appraisee_remarks,
+                "appraiser_remarks": "-"
+            })
+        epmm.set('competency_assessment1', [])
+        child2 = doc.competency_assessment1
+        for c in child2:
+            epmm.append("competency_assessment1",{
+                "competency": c.competency,
+                "weightage": c.weightage,
+                "appraisee_weightage": c.appraisee_weightage,
+                "manager": "-",
+                "hod": c.appraisee_weightage
+            })
+        epmm.set('key_result_area', [])
+        child3 = doc.key_result_area
+        for c in child3:
+            epmm.append("key_result_area",{
+                "goal_setting_for_current_year": c.goal_setting_for_current_year,
+                "performance_measure": c.performance_measure,
+                "weightage_w_100": c.weightage_w_100,
+                "self_rating": c.self_rating,
+                "weightage": c.weightage,
+                "manager": "-",
+                "hod": c.self_rating
+            })
+        epmm.set('key_results_area', [])
+        child4 = doc.key_results_area
+        for c in child4:
+            epmm.append("key_results_area",{
+                "goal_setting_for_last_year": c.goal_setting_for_last_year,
+                "performance_measure": c.performance_measure,
+                "weightage_w_100": c.weightage_w_100,
+                "weightage": c.weightage,
+                "self_rating": c.self_rating
+            })
+        epmm.set('employee_feedback', [])
+        # child5 = doc.employee_feedback
+        for c in range(5):
+            epmm.append("employee_feedback",{
+                "appraisee_remarks": "-"
+            })
         epmm.save(ignore_permissions=True)
 
 @frappe.whitelist()
 def update_hod():
-    self_list = ["PMS0085"]
+    self_list = ["PMS0210"]
     for s in self_list:
         doc = frappe.get_doc("Performance Management Self", s)
-        if doc.docstatus == 1 and doc.manager:
-            pmm = frappe.db.get_value("Performance Management HOD", {
-                                        "employee_code": doc.employee_code})
-            if pmm:
-                epmm = frappe.get_doc("Performance Management HOD", pmm)
-            else:
-                epmm = frappe.new_doc("Performance Management HOD")
-            epmm.update({
-                "employee_code": doc.employee_code,
-                "cost_code": doc.cost_code,
-                "department": doc.department,
-                "year_of_last_promotion": doc.year_of_last_promotion,
-                "business_unit": doc.business_unit,
-                "grade": doc.grade,
-                "employee_name": doc.employee_name,
-                "manager": doc.manager,
-                "hod": doc.hod,
-                "reviewer": doc.reviewer,
-                "designation": doc.designation,
-                "date_of_joining": doc.date_of_joining,
-                "appraisal_year": doc.appraisal_year,
-                "location": doc.location,
-                "no_of_promotion": doc.no_of_promotion,
-                "small_text_12": doc.small_text_12,
-                "small_text_14": doc.small_text_14,
-                "small_text_16": doc.small_text_16,
-                "small_text_18": doc.small_text_18,
-                "potential": "NA",
-                "performance": "NA",
-                "promotion": "NA",
-                "any_other_observations": "NA",
-                "required__job_knowledge": doc.required__job_knowledge,
-                "training_required_to_enhance_job_knowledge": doc.training_required_to_enhance_job_knowledge,
-                "required_skills": doc.required_skills,
-                "training_required__to_enhance_skills_competencies": doc.training_required__to_enhance_skills_competencies
+        # if doc.docstatus == 1 and doc.manager:
+        #     print('HI')
+        pmm = frappe.db.get_value("Performance Management HOD", {
+                                    "employee_code": doc.employee_code,"appraisal_year":doc.appraisal_year})
+        if pmm:
+            epmm = frappe.get_doc("Performance Management HOD", pmm)
+        else:
+            epmm = frappe.new_doc("Performance Management HOD")
+        epmm.update({
+            "employee_code": doc.employee_code,
+            "cost_code": doc.cost_code,
+            "department": doc.department,
+            "year_of_last_promotion": doc.year_of_last_promotion,
+            "business_unit": doc.business_unit,
+            "grade": doc.grade,
+            "employee_name": doc.employee_name,
+            "manager": doc.manager,
+            "hod": doc.hod,
+            "reviewer": doc.reviewer,
+            "designation": doc.designation,
+            "date_of_joining": doc.date_of_joining,
+            "appraisal_year": doc.appraisal_year,
+            "location": doc.location,
+            "no_of_promotion": doc.no_of_promotion,
+            "small_text_12": doc.small_text_12,
+            "small_text_14": doc.small_text_14,
+            "small_text_16": doc.small_text_16,
+            "small_text_18": doc.small_text_18,
+            "potential": "-",
+            "performance": "-",
+            "promotion": "-",
+            "any_other_observations": "-",
+            "required__job_knowledge": doc.required__job_knowledge,
+            "training_required_to_enhance_job_knowledge": doc.training_required_to_enhance_job_knowledge,
+            "required_skills": doc.required_skills,
+            "training_required__to_enhance_skills_competencies": doc.training_required__to_enhance_skills_competencies
+        })
+        epmm.set('sales_target', [])
+        child = doc.sales_target
+        for c in child:
+            epmm.append("sales_target",{
+                "year": c.year,
+                "actual_targets": c.actual_targets,
+                "attained_targets": c.attained_targets
             })
-            epmm.set('sales_target', [])
-            child = doc.sales_target
-            for c in child:
-                epmm.append("sales_target",{
-                    "year": c.year,
-                    "actual_targets": c.actual_targets,
-                    "attained_targets": c.attained_targets
-                })
-            epmm.set('job_analysis', [])
-            child1 = doc.job_analysis
-            for c in child1:
-                epmm.append("job_analysis",{
-                    "appraisee_remarks": c.appraisee_remarks,
-                    "appraiser_remarks": "NA"
-                })
-            epmm.set('competency_assessment1', [])
-            child2 = doc.competency_assessment1
-            for c in child2:
-                epmm.append("competency_assessment1",{
-                    "competency": c.competency,
-                    "weightage": c.weightage,
-                    "appraisee_weightage": c.appraisee_weightage,
-                    "manager": "NA",
-                    "hod": c.appraisee_weightage
-                })
-            epmm.set('key_result_area', [])
-            child3 = doc.key_result_area
-            for c in child3:
-                epmm.append("key_result_area",{
-                    "goal_setting_for_current_year": c.goal_setting_for_current_year,
-                    "performance_measure": c.performance_measure,
-                    "weightage_w_100": c.weightage_w_100,
-                    "self_rating": c.self_rating,
-                    "weightage": c.weightage,
-                    "manager": "NA",
-                    "hod": c.self_rating
-                })
-            epmm.set('key_results_area', [])
-            child4 = doc.key_results_area
-            for c in child4:
-                epmm.append("key_results_area",{
-                    "goal_setting_for_last_year": c.goal_setting_for_last_year,
-                    "performance_measure": c.performance_measure,
-                    "weightage_w_100": c.weightage_w_100,
-                    "weightage": c.weightage,
-                    "self_rating": c.self_rating
-                })
-            epmm.set('employee_feedback', [])
-            # child5 = doc.employee_feedback
-            for c in range(5):
-                epmm.append("employee_feedback",{
-                    "appraisee_remarks": "NA"
-                })
-            epmm.save(ignore_permissions=True)
-            frappe.db.commit()
+        epmm.set('job_analysis', [])
+        child1 = doc.job_analysis
+        for c in child1:
+            epmm.append("job_analysis",{
+                "appraisee_remarks": c.appraisee_remarks,
+                "appraiser_remarks": "-"
+            })
+        epmm.set('competency_assessment1', [])
+        child2 = doc.competency_assessment1
+        for c in child2:
+            epmm.append("competency_assessment1",{
+                "competency": c.competency,
+                "weightage": c.weightage,
+                "appraisee_weightage": c.appraisee_weightage,
+                "manager": "-",
+                "hod": c.appraisee_weightage
+            })
+        epmm.set('key_result_area', [])
+        child3 = doc.key_result_area
+        for c in child3:
+            epmm.append("key_result_area",{
+                "goal_setting_for_current_year": c.goal_setting_for_current_year,
+                "performance_measure": c.performance_measure,
+                "weightage_w_100": c.weightage_w_100,
+                "self_rating": c.self_rating,
+                "weightage": c.weightage,
+                "manager": "-",
+                "hod": c.self_rating
+            })
+        epmm.set('key_results_area', [])
+        child4 = doc.key_results_area
+        for c in child4:
+            epmm.append("key_results_area",{
+                "goal_setting_for_last_year": c.goal_setting_for_last_year,
+                "performance_measure": c.performance_measure,
+                "weightage_w_100": c.weightage_w_100,
+                "weightage": c.weightage,
+                "self_rating": c.self_rating
+            })
+        epmm.set('employee_feedback', [])
+        # child5 = doc.employee_feedback
+        for c in range(5):
+            epmm.append("employee_feedback",{
+                "appraisee_remarks": "-"
+            })
+        epmm.save(ignore_permissions=True)
+        frappe.db.commit()
 
 
 @frappe.whitelist()
 def update_pm_calibration(doc,method):
     if doc.name:
         pmc = frappe.db.get_value("Performance Management Calibration", {
-                                      "employee_code": doc.employee_code})
+                                      "employee_code": doc.employee_code,"appraisal_year":doc.appraisal_year})
         if pmc:
             epmc = frappe.get_doc("Performance Management Calibration", pmc)
         else:
@@ -591,17 +790,54 @@ def update_pm_calibration(doc,method):
         #     })
         # epmm.save(ignore_permissions=True)
 
+@frappe.whitelist()
+def manually_update_pm_calibration_previous_increment():
+    current_year = '2019'
+    previous_year = '2018'
+    docs = frappe.db.get_list("Performance Management Calibration",{"appraisal_year":current_year})
+    for d in docs:
+        pmc_cy = frappe.get_doc("Performance Management Calibration",d.name)
+        if pmc_cy.name:
+            previous_year_pmc = frappe.db.get_value("Performance Management Calibration", {
+                                        "employee_code": pmc_cy.employee_code,"appraisal_year":previous_year})
+            if previous_year_pmc:
+                pmc_ly = frappe.get_doc("Performance Management Calibration", previous_year_pmc)
+                pmc_cy.update({
+                    "basic_ly": pmc_ly.basic,
+                    "hra_ly": pmc_ly.hra,
+                    "special_allowance_ly": pmc_ly.special_allowance,
+                    "transport_ly": pmc_ly.transport,
+                    "education_ly": pmc_ly.education,
+                    "food_allowance_ly": pmc_ly.food_allowance,
+                    "relocation_allowance_ly": pmc_ly.relocation_allowance,
+                    "washing_allowance_ly": pmc_ly.washing_allowance,
+                    "site_allowance_ly": pmc_ly.site_allowance,
+                    "car_allowance_ly": pmc_ly.car_allowance,
+                    "pf_contribution_ly": pmc_ly.pf_contribution,
+                    "esi_ly": pmc_ly.esi,
+                    "monthly_gross_ly": pmc_ly.new_monthly_gross,
+                    "driver_salary_ly": pmc_ly.driver_salary,
+                    "car_emi_ly": pmc_ly.car_emi,
+                    "lta_ly": pmc_ly.lta,
+                    "gratuity_ly": pmc_ly.gratuity,
+                    "exgratia_ly":pmc_ly.exgratia,
+                    "sales_project_support_incentive_ly": pmc_ly.sales_project_support_incentive,
+                    "performance_incentive_ly": pmc_ly.performance_incentive,
+                    "annual_ctc_ly": pmc_ly.new_annual_ctc
+                })
+                pmc_cy.save(ignore_permissions=True)
+
 
 
 @frappe.whitelist()
 def manually_update_pm_calibration():
     # if frappe.db.exists("Performance Management Reviewer",{"docstatus": 1}):
-    docs = frappe.db.get_list("Performance Management Reviewer",{"docstatus": 1})
+    docs = frappe.db.get_list("Performance Management Reviewer",{"docstatus": 1,"appraisal_year":"2019"})
     for d in docs:
         doc = frappe.get_doc("Performance Management Reviewer",d.name)
         if doc.name:
             pmc = frappe.db.get_value("Performance Management Calibration", {
-                                        "employee_code": doc.employee_code1})
+                                        "employee_code": doc.employee_code1,"appraisal_year":"2019"})
             if pmc:
                 epmc = frappe.get_doc("Performance Management Calibration", pmc)
             else:
@@ -643,7 +879,7 @@ def manually_update_pm_calibration():
             # epmc.db.commit()
 
             pmm = frappe.db.get_value("Individual Performance", {
-                                        "employee_code": doc.employee_code})
+                                        "employee_code": doc.employee_code,"appraisal_year":"2019"})
             if pmm:
                 epmm = frappe.get_doc("Individual Performance", pmm)
             else:
@@ -737,96 +973,99 @@ def manually_update_pm_calibration():
             epmm.save(ignore_permissions=True)
 
 
-# @frappe.whitelist()
-# def update_pm_hod_doc():
-#     doc = frappe.get_doc("Performance Management Manager", {"employee_code": "1204"})
-#     pmm = frappe.db.get_value("Performance Management HOD", {
-#                                     "employee_code": doc.employee_code})
-#     if pmm:
-#         epmm = frappe.get_doc("Performance Management HOD", pmm)
-#     else:
-#         epmm = frappe.new_doc("Performance Management HOD")
-#     epmm.update({
-#         "employee_code": doc.employee_code,
-#         "employee_code1": doc.employee_code,
-#         "cost_code": doc.cost_code,
-#         "department": doc.department,
-#         "year_of_last_promotion": doc.year_of_last_promotion,
-#         "business_unit": doc.business_unit,
-#         "grade": doc.grade,
-#         "employee_name": doc.employee_name,
-#         "manager": doc.manager,
-#         "hod": doc.hod,
-#         "reviewer": doc.reviewer,
-#         "designation": doc.designation,
-#         "date_of_joining": doc.date_of_joining,
-#         "appraisal_year": doc.appraisal_year,
-#         "location": doc.location,
-#         "no_of_promotion": doc.no_of_promotion,
-#         "small_text_12": doc.small_text_12,
-#         "small_text_14": doc.small_text_14,
-#         "small_text_16": doc.small_text_16,
-#         "small_text_18": doc.small_text_18,
-#         "potential": doc.potential,
-#         "performance": doc.performance,
-#         "promotion": doc.promotion,
-#         "any_other_observations": doc.any_other_observations,
-#         "required__job_knowledge": doc.required__job_knowledge,
-#         "training_required_to_enhance_job_knowledge": doc.training_required_to_enhance_job_knowledge,
-#         "required_skills": doc.required_skills,
-#         "training_required__to_enhance_skills_competencies": doc.training_required__to_enhance_skills_competencies
-#     })
-#     epmm.set('sales_target', [])
-#     child = doc.sales_target
-#     for c in child:
-#         epmm.append("sales_target",{
-#             "year": c.year,
-#             "actual_targets": c.actual_targets,
-#             "attained_targets": c.attained_targets
-#         })
-#     epmm.set('job_analysis', [])
-#     child1 = doc.job_analysis
-#     for c in child1:
-#         epmm.append("job_analysis",{
-#             "appraisee_remarks": c.appraisee_remarks,
-#             "appraiser_remarks": c.appraiser_remarks
-#         })
-#     epmm.set('competency_assessment1', [])
-#     child2 = doc.competency_assessment1
-#     for c in child2:
-#         epmm.append("competency_assessment1",{
-#             "competency": c.competency,
-#             "weightage": c.weightage,
-#             "appraisee_weightage": c.appraisee_weightage,
-#             "manager": c.manager,
-#             "hod": c.manager
-#         })
-#     epmm.set('key_result_area', [])
-#     child3 = doc.key_result_area
-#     for c in child3:
-#         epmm.append("key_result_area",{
-#             "goal_setting_for_current_year": c.goal_setting_for_current_year,
-#             "performance_measure": c.performance_measure,
-#             "weightage_w_100": c.weightage_w_100,
-#             "self_rating": c.self_rating,
-#             "weightage": c.weightage,
-#             "manager": c.manager,
-#             "hod": c.manager
-#         })
-#     epmm.set('key_results_area', [])
-#     child4 = doc.key_results_area
-#     for c in child4:
-#         epmm.append("key_results_area",{
-#             "goal_setting_for_last_year": c.goal_setting_for_last_year,
-#             "performance_measure": c.performance_measure,
-#             "weightage_w_100": c.weightage_w_100,
-#             "weightage": c.weightage,
-#             "self_rating": c.self_rating
-#         })
-#     epmm.set('employee_feedback', [])
-#     child5 = doc.employee_feedback
-#     for c in child5:
-#         epmm.append("employee_feedback",{
-#             "appraisee_remarks": c.appraisee_remarks
-#         })
-#     epmm.save(ignore_permissions=True)                        
+@frappe.whitelist()
+def update_pm_hod_doc():
+    manager_list = ["PMM0133"]
+    for m in manager_list:
+        doc = frappe.get_doc("Performance Management Manager", m)
+    # doc = frappe.get_doc("Performance Management Manager", {"employee_code": "1204"})
+        pmm = frappe.db.get_value("Performance Management HOD", {
+                                    "employee_code": doc.employee_code,"appraisal_year":doc.appraisal_year})
+        if pmm:
+            epmm = frappe.get_doc("Performance Management HOD", pmm)
+        else:
+            epmm = frappe.new_doc("Performance Management HOD")
+        epmm.update({
+            "employee_code": doc.employee_code,
+            "employee_code1": doc.employee_code,
+            "cost_code": doc.cost_code,
+            "department": doc.department,
+            "year_of_last_promotion": doc.year_of_last_promotion,
+            "business_unit": doc.business_unit,
+            "grade": doc.grade,
+            "employee_name": doc.employee_name,
+            "manager": doc.manager,
+            "hod": doc.hod,
+            "reviewer": doc.reviewer,
+            "designation": doc.designation,
+            "date_of_joining": doc.date_of_joining,
+            "appraisal_year": doc.appraisal_year,
+            "location": doc.location,
+            "no_of_promotion": doc.no_of_promotion,
+            "small_text_12": doc.small_text_12,
+            "small_text_14": doc.small_text_14,
+            "small_text_16": doc.small_text_16,
+            "small_text_18": doc.small_text_18,
+            "potential": doc.potential,
+            "performance": doc.performance,
+            "promotion": doc.promotion,
+            "any_other_observations": doc.any_other_observations,
+            "required__job_knowledge": doc.required__job_knowledge,
+            "training_required_to_enhance_job_knowledge": doc.training_required_to_enhance_job_knowledge,
+            "required_skills": doc.required_skills,
+            "training_required__to_enhance_skills_competencies": doc.training_required__to_enhance_skills_competencies
+        })
+        epmm.set('sales_target', [])
+        child = doc.sales_target
+        for c in child:
+            epmm.append("sales_target",{
+                "year": c.year,
+                "actual_targets": c.actual_targets,
+                "attained_targets": c.attained_targets
+            })
+        epmm.set('job_analysis', [])
+        child1 = doc.job_analysis
+        for c in child1:
+            epmm.append("job_analysis",{
+                "appraisee_remarks": c.appraisee_remarks,
+                "appraiser_remarks": c.appraiser_remarks
+            })
+        epmm.set('competency_assessment1', [])
+        child2 = doc.competency_assessment1
+        for c in child2:
+            epmm.append("competency_assessment1",{
+                "competency": c.competency,
+                "weightage": c.weightage,
+                "appraisee_weightage": c.appraisee_weightage,
+                "manager": c.manager,
+                "hod": c.manager
+            })
+        epmm.set('key_result_area', [])
+        child3 = doc.key_result_area
+        for c in child3:
+            epmm.append("key_result_area",{
+                "goal_setting_for_current_year": c.goal_setting_for_current_year,
+                "performance_measure": c.performance_measure,
+                "weightage_w_100": c.weightage_w_100,
+                "self_rating": c.self_rating,
+                "weightage": c.weightage,
+                "manager": c.manager,
+                "hod": c.manager
+            })
+        epmm.set('key_results_area', [])
+        child4 = doc.key_results_area
+        for c in child4:
+            epmm.append("key_results_area",{
+                "goal_setting_for_last_year": c.goal_setting_for_last_year,
+                "performance_measure": c.performance_measure,
+                "weightage_w_100": c.weightage_w_100,
+                "weightage": c.weightage,
+                "self_rating": c.self_rating
+            })
+        epmm.set('employee_feedback', [])
+        child5 = doc.employee_feedback
+        for c in child5:
+            epmm.append("employee_feedback",{
+                "appraisee_remarks": c.appraisee_remarks
+            })
+        epmm.save(ignore_permissions=True)                        

@@ -2,47 +2,49 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on('On Duty Application', {
-    refresh: function(frm){
-        if(frm.doc.is_from_ar){
+    refresh: function (frm) {
+        if (frm.doc.is_from_ar) {
             frm.add_custom_button(__('Back'), function () {
                 frappe.set_route("query-report", "Attendance recapitulation")
             });
         }
     },
     from_date: function (frm) {
+        frm.trigger('validate_cutoff')
         frm.trigger("calculate_total_days")
-        if(frm.doc.to_date && frm.doc.from_date){
-            if(frm.doc.from_date != frm.doc.to_date){
-        if(frm.doc.from_date < frm.doc.to_date){
-            frm.trigger("calculate_total_days")
-            } else {
-                validated=false
-                frappe.msgprint("From Date Must be Lesser than or Equal to To Date")
-            frm.set_value("from_date","")
+        if (frm.doc.to_date && frm.doc.from_date) {
+            if (frm.doc.from_date != frm.doc.to_date) {
+                if (frm.doc.from_date < frm.doc.to_date) {
+                    frm.trigger("calculate_total_days")
+                } else {
+                    validated = false
+                    frappe.msgprint("From Date Must be Lesser than or Equal to To Date")
+                    frm.set_value("from_date", "")
+                }
             }
         }
-    }
-        
+
+
     },
     to_date: function (frm) {
         frm.trigger("calculate_total_days")
-        if(frm.doc.from_date && frm.doc.to_date){
-            if(frm.doc.from_date != frm.doc.to_date){
-            if(frm.doc.from_date < frm.doc.to_date){
-                frm.trigger("calculate_total_days")
-            } else {
-                validated=false
-                frappe.msgprint("To Date Must be Greater than or Equal to From Date")
-                frm.set_value("to_date","")
+        if (frm.doc.from_date && frm.doc.to_date) {
+            if (frm.doc.from_date != frm.doc.to_date) {
+                if (frm.doc.from_date < frm.doc.to_date) {
+                    frm.trigger("calculate_total_days")
+                } else {
+                    validated = false
+                    frappe.msgprint("To Date Must be Greater than or Equal to From Date")
+                    frm.set_value("to_date", "")
+                }
             }
-        }
         }
     },
     to_date_session: function (frm) {
         if (frm.doc.from_date == frm.doc.to_date) {
             frm.set_value("from_date_session", frm.doc.to_date_session)
         }
-            frm.trigger("calculate_total_days")
+        frm.trigger("calculate_total_days")
     },
     from_date_session: function (frm) {
         frm.trigger("calculate_total_days")
@@ -72,7 +74,7 @@ frappe.ui.form.on('On Duty Application', {
             });
         }
     },
-    validate: function (frm) {  
+    validate: function (frm) {
         // if(frm.doc.employee){
         //     frappe.call({
         //         "method": 'hunter_douglas.update_attendance.check_other_docs',
@@ -120,7 +122,8 @@ frappe.ui.form.on('On Duty Application', {
         //         })
         //     }
         // }
-        if(!frappe.user.has_role("Auto Present Employee") && (frappe.user.has_role("Employee")) && frm.doc.from_date && frm.doc.employee && frm.doc.to_date){
+        frm.trigger('validate_cutoff')
+        if (!frappe.user.has_role("Auto Present Employee") && (frappe.user.has_role("Employee")) && frm.doc.from_date && frm.doc.employee && frm.doc.to_date) {
             frappe.call({
                 "method": 'hunter_douglas.hunter_douglas.doctype.on_duty_application.on_duty_application.check_attendance',
                 args: {
@@ -153,8 +156,25 @@ frappe.ui.form.on('On Duty Application', {
                 }
             });
         }
-        if(frm.doc.is_from_ar && frm.doc.status == "Applied"){
+        if (frm.doc.is_from_ar && frm.doc.status == "Applied") {
             frappe.set_route("query-report", "Attendance recapitulation")
+        }
+    },
+    validate_cutoff: function (frm) {
+        if (frappe.session.user == 'sivaranjani.s@hunterdouglas.in') {
+            frappe.call({
+                "method": 'hunter_douglas.hunter_douglas.doctype.on_duty_application.on_duty_application.validate_cutoff',
+                args: {
+                    "from_date": frm.doc.from_date
+                },
+                callback: function (r) {
+                    if (r.message == 'Expired') {
+                        frappe.validated = false;
+                        refresh_field('from_date');
+                        frappe.throw(__("Application Period has been Expired for the selected Dates"));
+                    }
+                }
+            })
         }
     },
     // on_submit: function(frm){
@@ -175,7 +195,7 @@ frappe.ui.form.on('On Duty Application', {
     //         })
     //     }
     // }
- 
+
 });
 
 

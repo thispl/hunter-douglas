@@ -132,11 +132,11 @@ def execute(filters=None):
                 else:    
                     row += [att.first_half_status,att.second_half_status]
             else:
-                if late_in and late_in > timedelta(minutes=15) and early_out and early_out > timedelta(minutes=15):
+                if late_in and late_in > timedelta(minutes=16) and early_out and early_out > timedelta(minutes=16):
                     row += ["AB","AB"]
-                elif late_in and late_in > timedelta(minutes=15):
+                elif late_in and late_in > timedelta(minutes=16):
                     row += ["AB","PR"]
-                elif early_out and early_out > timedelta(minutes=15):
+                elif early_out and early_out > timedelta(minutes=16):
                     row += ["PR","AB"]
                 else:        
                     row += [att.first_half_status,att.second_half_status]
@@ -145,11 +145,11 @@ def execute(filters=None):
             row += ["OD","OD"] 
 
         elif att.status == "Present":
-            if late_in and late_in > timedelta(minutes=15) and early_out and early_out > timedelta(minutes=15):
+            if late_in and late_in > timedelta(minutes=16) and early_out and early_out > timedelta(minutes=16):
                row += ["AB","AB"]
-            elif late_in and late_in > timedelta(minutes=15):
+            elif late_in and late_in > timedelta(minutes=16):
                 row += ["AB","PR"]
-            elif early_out and early_out > timedelta(minutes=15):
+            elif early_out and early_out > timedelta(minutes=16):
                 row += ["PR","AB"]    
             else:
                 tm_record = frappe.db.sql("""select half_day from `tabTour Application`

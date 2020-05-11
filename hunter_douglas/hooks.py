@@ -86,15 +86,15 @@ doc_events = {
     },
     "Performance Management Self":
     {
-        "on_submit": "hunter_douglas.custom.update_pm_manager"
+        "on_submit": "hunter_douglas.pm_utils.update_pm_manager"
     },
     "Performance Management Manager":
     {
-        "on_submit": "hunter_douglas.custom.update_pm_hod"
+        "on_submit": "hunter_douglas.pm_utils.update_pm_hod"
     },
     "Performance Management HOD":
     {
-        "on_submit": "hunter_douglas.custom.update_pm_reviewer"
+        "on_submit": "hunter_douglas.pm_utils.update_pm_reviewer"
     },
     # "Performance Management Reviewer":
     # {
@@ -124,7 +124,8 @@ scheduler_events = {
 # 		"hunter_douglas.tasks.all"
 # 	],
     "daily": [
-        "hunter_douglas.custom.fetch_att_prev"
+        "hunter_douglas.custom.fetch_att_prev",
+        "hunter_douglas.update_attendance.mark_hd"
     ],
     "cron": {
         "0 7-23/1 * * *":[

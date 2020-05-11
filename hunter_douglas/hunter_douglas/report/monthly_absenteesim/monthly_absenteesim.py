@@ -206,20 +206,20 @@ def validate_if_attendance_not_applicable(employee, attendance_date):
     od_record = frappe.db.sql("""select half_day,from_date_session,to_date_session from `tabOn Duty Application`
             where employee = %s and %s between from_date and to_date
             and docstatus = 1 and status='Approved'""", (employee, attendance_date), as_dict=True)
-    for o in od_record:
-        if o.from_date_session == 'First Half':
-            # frappe.errprint(attendance_date)
-            # frappe.errprint("OD")
-            return True  
-        else:
-            return False    
+    if od_record:
+        return True 
+    # for o in od_record:
+    #     if o.from_date_session == 'First Half':
+    #         # frappe.errprint(attendance_date)
+    #         # frappe.errprint("OD")
+    #         return True  
+    #     else:
+    #         return False    
     # Check if employee on C-Off
     coff_record = frappe.db.sql("""select half_day from `tabCompensatory Off Application`
             where employee = %s and %s between from_date and to_date
             and docstatus = 1 and status='Approved'""", (employee, attendance_date), as_dict=True)
     if coff_record:
-        # frappe.errprint(attendance_date)
-        # frappe.errprint("COFF")
         return True   
     # # Check if employee on On-Travel
     # tm_record = frappe.db.sql("""select half_day from `tabTravel Management`

@@ -133,6 +133,7 @@ frappe.query_reports["Attendance recapitulation"] = {
 				{ fieldtype: "Button", fieldname: "apply_leave", label: __("Apply Leave"), reqd: 0 },
 				{ fieldtype: "Button", fieldname: "apply_mr", label: __("Apply Movement Register"), reqd: 0 },
 				{ fieldtype: "Button", fieldname: "apply_tour", label: __("Apply Tour Application"), reqd: 0 },
+				{ fieldtype: "Button", fieldname: "apply_mp", label: __("Apply Missed Punch"), reqd: 0 },
 				{ fieldtype: "Column Break", fieldname: "cb2", label: __(""), reqd: 0 },
 				{ fieldtype: "Data", fieldname: "out_time", label: __("Out Time"), default: data['Out Time'], reqd: 0 },
 				{ fieldtype: "Section Break", fieldname: "sb1", label: __(""), reqd: 0 },
@@ -227,9 +228,12 @@ frappe.query_reports["Attendance recapitulation"] = {
 			frappe.set_route("Form", "Tour Application", "New Tour Application", { "is_from_ar": "Yes" })
 		}
 		d1.fields_dict.apply_mp.input.onclick = function () {
+			
 			var att_date = data["Attendance Date"]
-			console.log(att_date)
-			frappe.set_route("Form", "Miss Punch Application", "New Miss Punch Application", { "is_from_ar": "Yes" })
+			m = moment(data["Attendance Date"])
+			var att_date = m.format('DD-MM-YYYY')
+			var att_date_f = new Date(att_date);
+			frappe.set_route("Form", "Miss Punch Application", "New Miss Punch Application",{ "is_from_ar": "No","attendance_date": att_date })
 		}
 		d1.show();
 	},
@@ -240,7 +244,7 @@ frappe.query_reports["Attendance recapitulation"] = {
 				{ fieldtype: "Date", fieldname: "date", label: __("Date"), default: data['Attendance Date'], reqd: 0 },
 				{ fieldtype: "Column Break", fieldname: "cb3", label: __(""), reqd: 0 },
 				{ fieldtype: "Button", fieldname: "assign", label: __("Assign"), reqd: 0 },
-				{ fieldtype: "Select", fieldname: "shift", label: __("Shift"), options: ["GF1(8:00:00 - 16:30:00)", "GF2(9:00:00 - 17:30:00)", "GO1(8:00:00 - 16:45:00)", "GO2(9:00:00 - 17:45:00)", "GO3(10:00:00 - 18:45:00)","FS1(6:00:00 - 14:30:00)", "FS2(7:00:00 - 15:30:00)", "FS3(15:00:00 - 23:00:00)", "FS4(23:00:00 - 7:00:00)"], reqd: 0 }
+				{ fieldtype: "Select", fieldname: "shift", label: __("Shift"), options: ["GF1(8:00:00 - 16:30:00)", "GF2(9:00:00 - 17:30:00)","GF3(5:00:00 - 13:30:00)","GF4(7:30:00 - 16:00:00)", "GO1(8:00:00 - 16:45:00)", "GO2(9:00:00 - 17:45:00)", "GO3(10:00:00 - 18:45:00)","FS1(6:00:00 - 14:30:00)", "FS2(7:00:00 - 15:30:00)", "FS3(15:00:00 - 23:00:00)", "FS4(23:00:00 - 7:00:00)"], reqd: 0 }
 
 			],
 			primary_action: function () {

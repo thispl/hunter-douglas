@@ -2,24 +2,7 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on('Travel Management', {
-	refresh: function(frm) {
-        if (frm.doc.docstatus == 1 && frm.doc.status == 'Approved')
-        {
-		frm.add_custom_button(__("Expense Claim"),function(){
-			if (frm.doc.expense_claim){
-
-				frappe.set_route("Form","Expense Claim",frm.doc.expense_claim)
-			}
-			else{
-				frappe.set_route("Form","Expense Claim","New Expense Claim1",{
-                    "travel_management_id": frm.doc.name,
-
-				})
-			}
-			
-		})
-    }
-    },  
+	 
 	from_date: function(frm) {
         frm.trigger("calculate_total_days");
     },
@@ -98,6 +81,7 @@ frappe.ui.form.on('Travel Management', {
                         "travel_management": frm.doc.name
                     },
                     callback: function(r){
+                    console.log(r.message)    
                     frappe.call({
                         "method": "frappe.client.set_value",
                         "args": {

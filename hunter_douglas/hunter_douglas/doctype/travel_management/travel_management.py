@@ -21,52 +21,70 @@ class TravelManagement(Document):
             frappe.throw(_("Only Applications with status 'Approved' and 'Rejected' can be submitted"))
         # self.send_ticket_copy()
     
-    def on_update_after_submit(self):
-        attachments = self.get_attachments()
-        email_args = {
-            'recipients':'abdulla.pi@voltechgroup.com',
-            'attachments':[self.get_attachments()], 
-            'subject':'Ticket Copy  for %s' % self.name,
-            'message':""" <p><em><strong>Ticket Requisition</strong></em></p>
-                        <ul style="list-style-type: circle;">
-                        <li>Employee Code: <strong>%s</strong></li>
-                        <li>Employee Name: <strong>%s</strong></li>
-                        <li>Status: <strong>%s</strong></li>
-                        <li>Approved By: <strong>%s</strong></li>
-                        <li>Travel Date: <strong>%s</strong></li>
-                        <li>From Place: <strong>%s</strong></li>
-                        <li>To Place: <strong>%s </strong></li>
-                        </ul>"""%(self.employee,self.employee_name,self.status,self.approver,formatdate(self.from_date),self.from_place,self.to_place),
-            'now':True,
-        }
-        enqueue(method=frappe.sendmail, queue='short', timeout=300, is_async=True, **email_args)
+    # def on_update_after_submit(self):
+    #     if self.get_attachments():
+    #         attachments = self.get_attachments()
+    #         print attachments
+    #         email_args = {
+    #             'recipients':'abdulla.pi@voltechgroup.com',
+    #             'attachments':[self.get_attachments()], 
+    #             'subject':'Ticket Copy  for %s' % self.name,
+    #             'message':""" <p><em><strong>Ticket Requisition</strong></em></p>
+    #                         <ul style="list-style-type: circle;">
+    #                         <li>Employee Code: <strong>%s</strong></li>
+    #                         <li>Employee Name: <strong>%s</strong></li>
+    #                         <li>Status: <strong>%s</strong></li>
+    #                         <li>Approved By: <strong>%s</strong></li>
+    #                         <li>Travel Date: <strong>%s</strong></li>
+    #                         <li>From Place: <strong>%s</strong></li>
+    #                         <li>To Place: <strong>%s </strong></li>
+    #                         </ul>"""%(self.employee,self.employee_name,self.status,self.approver,formatdate(self.from_date),self.from_place,self.to_place),
+    #             'now':True,
+    #         }
+    #         enqueue(method=frappe.sendmail, queue='short', timeout=300, is_async=True, **email_args)
         
-    def get_attachments(self):
-        return frappe.get_doc("File",{'attached_to_doctype':self.doctype,'attached_to_name':self.name})
+    # def get_attachments(self):
+    #     employee = frappe.get_doc("Employee", self.employee)
+    #         approvers = [l.leave_approver for l in employee.get("leave_approvers")]
+    #         if len(approvers) and self.approver not in approvers:
+    #             frappe.throw(_("Approver must be one of {0}")
+    #                 .format(comma_or(approvers)), InvalidApproverError)
+
+    #         elif self.approver and not frappe.db.sql("""select name from `tabHas Role`
+    #             where parent=%s and role='Leave Approver'""", self.approver):
+    #             frappe.throw(_("{0} ({1}) must have role 'Approver'")\
+    #                 .format(get_fullname(self.approver), self.approver), InvalidApproverError)
+
+    #         elif self.docstatus==0 and len(approvers) and self.approver != frappe.session.user:
+    #             self.status = 'Applied'
+
+    #         elif self.docstatus==1 and len(approvers) and self.approver != frappe.session.user:
+    #             frappe.throw(_("Only the selected Approver can submit this Application"),
+    #                 LeaveApproverIdentityError)n frappe.get_doc("File",{'attached_to_doctype':self.doctype,'attached_to_name':self.name})
 
     def validate(self):
         self.validate_approver()	
         self.validate_tm_overlap()
 
     def validate_approver(self):
-        employee = frappe.get_doc("Employee", self.employee)
-        approvers = [l.leave_approver for l in employee.get("leave_approvers")]
+        if not frappe.session.user == 'hr.hdi@hunterdouglas.asia':
+            employee = frappe.get_doc("Employee", self.employee)
+            approvers = [l.leave_approver for l in employee.get("leave_approvers")]
+            if len(approvers) and self.approver not in approvers:
+                frappe.throw(_("Approver must be one of {0}")
+                    .format(comma_or(approvers)), InvalidApproverError)
 
-        if len(approvers) and self.approver not in approvers:
-            frappe.throw(_("Approver must be one of {0}")
-                .format(comma_or(approvers)), InvalidApproverError)
+            elif self.approver and not frappe.db.sql("""select name from `tabHas Role`
+                where parent=%s and role='Leave Approver'""", self.approver):
+                frappe.throw(_("{0} ({1}) must have role 'Approver'")\
+                    .format(get_fullname(self.approver), self.approver), InvalidApproverError)
 
-        elif self.approver and not frappe.db.sql("""select name from `tabHas Role`
-            where parent=%s and role='Leave Approver'""", self.approver):
-            frappe.throw(_("{0} ({1}) must have role 'Approver'")\
-                .format(get_fullname(self.approver), self.approver), InvalidApproverError)
+            elif self.docstatus==0 and len(approvers) and self.approver != frappe.session.user:
+                self.status = 'Applied'
 
-        elif self.docstatus==0 and len(approvers) and self.approver != frappe.session.user:
-            self.status = 'Applied'
-
-        elif self.docstatus==1 and len(approvers) and self.approver != frappe.session.user:
-            frappe.throw(_("Only the selected Approver can submit this Application"),
-                LeaveApproverIdentityError)
+            elif self.docstatus==1 and len(approvers) and self.approver != frappe.session.user:
+                frappe.throw(_("Only the selected Approver can submit this Application"),
+                    LeaveApproverIdentityError)
 
     def validate_tm_overlap(self):
         if not self.docstatus == 1:
@@ -255,5 +273,9 @@ def create_tour_application(travel_management):
 
 @frappe.whitelist()
 def delete_tour_application(doc, method):
-    tr = frappe.get_doc("Tour Application",doc.tour_application)
-    tr.cancel()
+    tr = frappe.db.exists("Tour Application",doc.tour_application)
+    if tr:
+        doc = frappe.get_doc("Tour Application",tr)
+        if doc.docstatus == 1:
+            doc.cancel()
+        frappe.delete_doc("Tour Application",tr)    

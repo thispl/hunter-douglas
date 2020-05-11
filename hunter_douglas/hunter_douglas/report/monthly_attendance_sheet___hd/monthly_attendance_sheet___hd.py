@@ -145,19 +145,19 @@ def execute(filters=None):
                         #     ab += 1.0         
                         else:    
                             if h['is_ph']:
-                                # if check_prefix_suffix(att.employee,att.attendance_date):
-                                #     status = "AB"
-                                #     ab += 1.0
-                                # else:
-                                status = 'PH'
-                                ph += 1.0
+                                if check_prefix_suffix(att.employee,att.attendance_date):
+                                    status = "AB"
+                                    ab += 1.0
+                                else:
+                                    status = 'PH'
+                                    ph += 1.0
                             else:
-                                # if check_prefix_suffix(att.employee,att.attendance_date):
-                                #     status = "AB"
-                                #     ab += 1.0
-                                # else:
-                                status = 'WO'
-                                wo += 1.0
+                                if check_prefix_suffix(att.employee,att.attendance_date):
+                                    status = "AB"
+                                    ab += 1.0
+                                else:
+                                    status = 'WO'
+                                    wo += 1.0
                     row += [status]
 
                 
@@ -173,6 +173,10 @@ def execute(filters=None):
                             fh = get_ab_fh(att.employee,att.attendance_date)
                             if fh == 'COFF':
                                 coff += 0.5
+                            elif fh == 'OD':
+                                od += 0.5
+                            elif fh == 'TR':
+                                tr += 0.5    
                             else:
                                 fh = 'AB'
                                 ab += 0.5
@@ -187,8 +191,18 @@ def execute(filters=None):
                             if 'SL' in leave_record[0]:
                                 sl += 0.5
                         elif leave_record[1] == "First Half":
-                            for lv in leave_record[0]:row +=[lv +'/'+"AB"]
-                            ab += 0.5
+                            sh = get_ab_sh(att.employee,att.attendance_date)
+                            if sh == 'COFF':
+                                coff += 0.5
+                            elif sh == 'OD':
+                                od += 0.5
+                            elif sh == 'TR':
+                                tr += 0.5    
+                            else:
+                                sh = 'AB'
+                                ab += 0.5
+                            for lv in leave_record[0]:row +=[lv +'/'+sh]
+                            # ab += 0.5
                             l += 0.5
                             if 'PL' in leave_record[0]:
                                 pl += 0.5
@@ -247,7 +261,10 @@ def execute(filters=None):
                             ab += 0.5
                         else:
                             row += ["C-OFF"]
-                            coff += 1.0    
+                            coff += 1.0  
+                    elif att.in_time > att.out_time:
+                        row += ["PR"]     
+                        p += 1.0     
                     # elif coff_record[0]:
                     #     row += ["C-OFF"]
                     #     coff += 1.0 
@@ -367,12 +384,15 @@ def execute(filters=None):
                             if att.first_half_status == 'PR' or att.second_half_status == 'PR':
                                 p += 0.5
                             if att.first_half_status == 'AB' or att.second_half_status == 'AB':
-                                ab += 0.5                   
+                                ab += 0.5   
+                    elif att.in_time > att.out_time:
+                        row += ["PR"]     
+                        p += 1.0                              
                     else:
-                        if late_in and late_in > timedelta(minutes=15) and early_out and early_out > timedelta(minutes=5):
+                        if late_in and late_in > timedelta(minutes=16) and early_out and early_out > timedelta(minutes=5):
                             row += ["AB"]
                             ab += 1.0
-                        elif late_in and late_in > timedelta(minutes=15):
+                        elif late_in and late_in > timedelta(minutes=16):
                             row += ["AB/PR"]
                             ab += 0.5
                             p += 0.5
@@ -479,10 +499,10 @@ def execute(filters=None):
                     elif att.employee in auto_present_list:
                         row += ["PR"]
                         p += 1.0
-                    elif late_in and late_in > timedelta(minutes=15) and early_out and early_out > timedelta(minutes=5):
+                    elif late_in and late_in > timedelta(minutes=16) and early_out and early_out > timedelta(minutes=5):
                         row += ["AB"]
                         ab += 1.0
-                    elif late_in and late_in > timedelta(minutes=15):
+                    elif late_in and late_in > timedelta(minutes=16):
                         row += ["AB/PR"]
                         ab += 0.5
                         p += 0.5
@@ -562,14 +582,8 @@ def get_conditions(filters):
 
 def check_prefix_suffix(emp,day):
     previous_day = next_day = False 
-    preday = day
-    postday = day
-
-    while is_holiday(emp,preday):
-        preday = add_days(preday,-1)
-
-    while is_holiday(emp,postday):
-        postday = add_days(postday,1)
+    preday = add_days(day,-1)
+    postday = add_days(day,1)
 
     # Check if employee on Leave
     pre_leave_record = frappe.db.sql("""select half_day,from_date_session,to_date_session from `tabLeave Application`
@@ -587,8 +601,8 @@ def check_prefix_suffix(emp,day):
             if o.from_date_session == 'Full Day' or o.from_date_session == 'First Half':
                 next_day =  True
     if previous_day and next_day:
-        return True   
-    return False    
+        return True 
+    return False   
 
 # def get_continuous_absents(emp,day):
 #     prev_day = frappe.db.get_value("Attendance",{"attendance_date":add_days(day, -1),"employee":emp},["status"])
@@ -599,15 +613,40 @@ def check_prefix_suffix(emp,day):
 #     return False 
 def get_ab_fh(emp,day):
     from_date_session = to_date_session = coff = session = ""
-    for apps in ['tabCompensatory Off Application']:
+    status = 'AB'
+    for apps in ['tabCompensatory Off Application','tabOn Duty Application','tabTour Application']:
         query = """select half_day from `%s`
                             where employee = '%s' and from_date = '%s'  and docstatus = 1 and status='Approved' and half_day=1 and from_date_session='First Half'""" % (apps,emp, day)
         record = frappe.db.sql(query, as_dict=True)
-        if record:            
+        if record and apps == 'tabCompensatory Off Application':            
             status = "COFF"
-        else:
-            status = 'AB'      
-    return status
+            return status 
+        elif record and apps == 'tabOn Duty Application':
+            status = "OD"
+            return status 
+        elif record and apps == 'tabTour Application':
+            status = "TR"  
+            return status   
+    return status    
+    
+
+def get_ab_sh(emp,day):
+    from_date_session = to_date_session = coff = session = ""
+    status = 'AB'
+    for apps in ['tabCompensatory Off Application','tabOn Duty Application','tabTour Application']:
+        query = """select half_day from `%s`
+                            where employee = '%s' and from_date = '%s'  and docstatus = 1 and status='Approved' and half_day=1 and from_date_session='Second Half'""" % (apps,emp, day)
+        record = frappe.db.sql(query, as_dict=True)
+        if record and apps == 'tabCompensatory Off Application':            
+            status = "COFF"  
+            return status
+        elif record and apps == 'tabOn Duty Application':
+            status = "OD"
+            return status
+        elif record and apps == 'tabTour Application':
+            status = "TR"
+            return status        
+    return status  
 
 def get_continuous_absents(emp,day):
     previous_day = False

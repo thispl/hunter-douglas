@@ -1,0 +1,382 @@
+{% set terms_exist = doc.terms and (doc.terms|striptags).strip() or "" %}
+<div class="container">
+    <div class="row">
+        <div class="col-xs-12">
+             {% if letter_head and not no_letterhead -%}
+            <div class="letter-head">{{ letter_head }}</div>
+            {%- endif %}
+            <div class="topmargin"></div>
+		<div align="right"><b>Date:{{frappe.utils.formatdate(doc.offer_date)}}</b></div>
+		{%set year = doc.fiscal_year %}
+		{%set code = doc.employee_code_1 %}
+		<div align="right"><b>Ref : SN / Lnt / {{ year }} / {{code}}</b></div>
+            <h1><u>
+                    <div align="center"><b>EMPLOYMENT OFFER LETTER</b></div>
+                </u></h1>
+            <div class="row align">
+                <div class="col-xs-6">
+                    <b>To,</b>
+                    {% set address = doc.address %}
+                    {% set list1 = address.split('\n') %}
+                    {% for list in list1 %}
+                    <p>{{ list }}</p>
+                    {% endfor %}
+                </div>
+                <div class="col-xs-6" style="text-align:right;">
+                    {# <label>Employee Code:{{doc.employee_code}}</label>
+                    <label>Designation:{{doc.designation}}</label>
+                    <label>Project Site :{{doc.project_site}}</label> #}
+                </div>
+            </div>
+<br><br>
+            <div class="row align">
+                <b>Dear Mr. {{doc.applicant_name}},</b><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;This has reference to your application and the subsequent interview you had
+                with
+                us, we are pleased to offer you employment as <b>“{{doc.designation}}”</b> on contractual basis for project <b>{{ doc.project_site }},{{ doc.location}} </b>
+                for client <b>L&T Constructions, Smart World And Communications</b>
+                for a specific
+                period of 12 (Twelve) months from the <b>{{ frappe.utils.formatdate(doc.date_of_joining) }}</b>, herein state
+                the
+                specific salary and other benefits which is indicated in Annexure – A (Enclosed). Your Employee Code
+                will
+                be <b>{{doc.employee_code}}</b>.
+            </div>
+            <div class="row align">
+                <h5><b>TERMS OF EMPLOYMENT</b></h5>
+                <ol TYPE="1">
+                    <li>You will be on contract for a period of 12 Months which can extend subjected to satisfactory
+                        performance unless otherwise required.
+                    </li>
+                    <li>Be it clearly understood and agreed that your appointment is being made on contractual basis
+                        for a
+                        fixed period as stated above. Your appointment will automatically come to an end on the expiry
+                        of
+                        the specified period and no notice or notice pay or retrenchment compensation will be payable
+                        to
+                        you by the management.
+                    </li>
+                    <li>Since your appointment is being made for a specified period you will neither have any rights
+                        nor a
+                        lien on the job held by you. Also you will not claim regular employment even if there is such a
+                        vacancy for the post held by you or otherwise. Except one month’s notice or salary in lieu of
+                        one
+                        month’s notice no compensation or remaining wages for unexpired period of contractual and fixed
+                        period of appointment will be payable by the management if your services are terminated before
+                        the
+                        specified period of your service.
+                    </li>
+
+                    <li>After the end of one-year contract or breached earlier, you will not have continuance of
+                        benefits
+                        of employment like EPF, ESI, Insurance Benefits, or any compensations whatsoever is offered
+                        during
+                        your employment.
+                    </li>	
+                    <br> <br><br>
+                    {% if letter_head and not no_letterhead -%}
+                    <div class="letter-head">{{ footer }}</div>
+                    {%- endif %}
+		
+		  <div style="height: 0.2in"></div>
+	{% if letter_head and not no_letterhead -%}
+            <div class="letter-head">{{ letter_head }}</div>
+            {%- endif %}
+                    <li>Your appointment is subject to a satisfactory reference / background check and testimonial
+                        verification. The Company shall, at its discretion conduct background check either before
+                        joining
+                        the company or within a reasonable and practicable time frame after joining. This offer and
+                        your
+                        continued employment is conditional upon the result of such checks. In case the results of the
+                        same
+                        checks are negative or unsatisfactory for any reason, your offer / employment will be treated
+                        as
+                        null and void. In such event, you may be immediately relieved from the employment without
+                        giving
+                        any notice and or notice pay in lieu of or any other remuneration (including incentives) for
+                        the
+                        period of engagement up to aforesaid date of relieving.
+                    </li>
+
+                    <li>Your duties will include for efficient, satisfactory and economical operation in the area of
+                        responsibility that may be assigned to you from time to time. As an employee of the
+                        company/firm/Establishment you will maintain a high standard of loyalty, efficiency, integrity
+                        and
+                        secrecy and will liaison with employees working under your supervision or your colleagues and
+                        will
+                        be responsible for execution of the decision taken by colleagues and will responsible for
+                        execution
+                        of the decision taken by the management from time to time.
+                    </li>
+                    <li>The Management will be within its rights to transfer you for work or loan your services to any
+                        other unit/Division/Department or its parent and associated companies in any part of the
+                        country,
+                        where the Company/Firm/Establishment has an office or branch or unit or site for work, either
+                        at
+                        present or may have at any time in future.
+                    </li>
+
+                    <li>On transfer or deputation, you will be governed by the rules and regulations of the contracting
+                        company and will adhere to the instructions given by the superiors of the contracting company.
+                    </li>
+                    <li>You will not divulge or give out to anyone in any manner particulars or details of any trade
+                        secrets or research process, financial administrative and organization matters or any
+                        transaction
+                        or affairs of the company/Firm/Establishment of confidential nature.
+                    </li>
+                    <li>You will devote your whole time and attention to the interest of the company/Firm/Establishment
+                        and
+                        will not engage yourself in any other work either paid or in honorary capacity.
+                    </li>
+                    <li>Your appointment is being made on the basis of your particulars such as qualification etc., as
+                        given in your application for employment and in case any information as given by you is found
+                        false
+                        or incorrect your appointment will be deemed void and liable for termination without any notice
+                        or
+                        salary in lieu of notice.
+                    </li>
+                    <li>Your address as indicated in your application for appointment shall be deemed to be correct for
+                        sending any communication to you and every communication addressed to you at the given address
+                        shall be deemed to have been served upon you.
+                    </li>
+			
+                     {% if letter_head and not no_letterhead -%}
+                    <div class="letter-head">{{ footer }}</div>
+           {%- endif %}
+           
+		    <div style="height: 0.3in"></div>
+	{% if letter_head and not no_letterhead -%}
+            <div class="letter-head">{{ letter_head }}</div>
+            {%- endif %}
+                    <li>In case there is any change in your residential address, you will intimate the same in writing
+                        to
+                        the personnel Department/Manager within three days from the date of such change and get such
+                        change
+                        of address recorded.
+                    </li>
+                    
+                    <li>You will be bound by the certified standing Orders, Rules, Regulations and office orders in
+                        force
+                        and framed by the company from time to time in relation to your service conditions, which will
+                        form
+                        part of your terms of employment.
+                    </li>
+                    <li>Your continuance in service with the company is subject to your remaining physically and
+                        mentally
+                        fit. You will submit yourself to medical examination as per the directions of the Management.
+                    </li>
+
+                    <li>The above offer is governed by the Contract labor (Regulation & Abolition) Act, 1970, this
+                        shall be
+                        in effect till your continuance of employment.
+                    </li>
+                    <li>If you decide to leave the role currently held by you in organization or decide to leave the
+                        organization for various reasons, you must serve notice period of 30 days from date of
+                        acceptance
+                        of your resignation letter.
+                    </li>
+                    &nbsp;
+                    <li>If you chose not to serve the notice period of 30 days, the Company reserves the right to
+                        recover
+                        compensation of 01 (One) month salary in lieu of notice period from you.
+                    </li>
+                    <li>In the event of separation without notice or without information in written or not handing over
+                        the
+                        Client / Company property including the files and records under your possession, the management
+                        has
+                        every right to withhold your salary and other dues due to you.
+                    </li>
+                </ol>
+            </div>
+            <div class="row align">
+                Please submit us the written acceptance of this offer by signing the second copy of this letter. We
+                welcome
+                you to VHRS and wish you all the very best for your new assignment.
+            </div>
+            <br><br>
+            <div class="row align">
+            This is a Computer Generated Document.No Signature Required.
+            </div>
+            {# <div class="row align">
+                With Best Regards & Wishes,<br>
+                For Voltech HR Services Pvt. Ltd.,
+                <br><br><br><br>
+                Dinesh K Babu<br>
+                Director
+            </div> #}
+            <br><br>
+            <div class="row align">
+                PLEASE SIGN ON THE BELOW SECTION AND ALL THE PAGES - TAKE A XEROX & SUBMIT THE DUPLICATE TO HR
+                DEPARTMENT <br>
+	{% if letter_head and not no_letterhead -%}
+                    <div class="letter-head">{{ footer }}</div>
+           {%- endif %}
+           <br><br><br><br>
+		    <div style="height: 0.3in"></div>
+	{% if letter_head and not no_letterhead -%}
+            <div class="letter-head">{{ letter_head }}</div>
+            {%- endif %}
+                <h3><u>
+  <div align="center"><b>ACKNOWLEDGEMENT</b></div>
+                    </u></h3><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;I have carefully read the above “Employment Offer Letter” given to me from VHRS
+                and
+                the conditions prescribed therein. I am willingly and unconditionally accepting this “Employment Offer
+                Letter” as issued from VHRS and am committed to abide with the terms and conditions as mentioned
+                therein.
+                <br><br><br>
+                Candidate: Full Name/Full Signature/Date
+<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
+		{% if letter_head and not no_letterhead -%}
+                    <div class="letter-head">{{ footer }}</div>
+           {%- endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% if letter_head and not no_letterhead -%}
+            <div class="letter-head">{{ letter_head }}</div>
+            {%- endif %}
+<table class="annex table table-bordered" border="1" style="width:100%">
+<tr>
+<td style="border:1px solid !important;" align="center" colspan = "8" ><strong>Annexure-A</strong></td>
+</tr>
+<tr>
+<td style="border:1px solid !important;" align="center" colspan = "8" ><strong>Remuneration and Deductions Break-up</strong></td>
+</tr>
+<tr>
+<td style="border:1px solid !important;" colspan = "8">EMPLOYMENT DETAILS</td>
+</tr>
+<tr>
+<td style="border:1px solid !important;" colspan = "2">Name :</td>
+<td style="border:1px solid !important;" colspan = "2">{{doc.applicant_name}}</td>
+<td style="border:1px solid !important;" colspan = "2">Employee Code:</td>
+<td style="border:1px solid !important;" colspan = "2">{{doc.employee_code}}</td>
+</tr>
+<tr>
+<td style="border:1px solid !important;" colspan = "2">Designation :</td>
+<td style="border:1px solid !important;" colspan = "2">{{doc.designation}}</td>
+<td style="border:1px solid !important;" colspan = "2">Date of joining :</td>
+<td style="border:1px solid !important;" colspan = "2">{{ frappe.utils.formatdate(doc.date_of_joining) }}</td>
+</tr>
+<tr>
+<td style="border:1px solid !important;" align="center" colspan = "8" ><strong>Basic and Other Allowances Details</strong></td></tr>
+<tr>
+<td style="border:1px solid !important;" colspan = "2">Title</td>
+<td style="border:1px solid !important;" colspan = "2">Per Month</td>
+<td style="border:1px solid !important;" colspan = "2">Per Annum</td>
+<td style="border:1px solid !important;" colspan = "2">Frequency of payment</td>
+</tr>
+<tr>
+<td style="border:1px solid !important;" colspan = "2">Basic</td>
+<td style="border:1px solid !important;" colspan = "2" align="right">{{frappe.utils.fmt_money(doc.basic_per_month,currency='INR')}}</td>
+<td style="border:1px solid !important;" colspan = "2" align="right">{{frappe.utils.fmt_money(doc.basic_per_annum,currency='INR')}}</td>
+<td style="border:1px solid !important;vertical-align:middle !important" colspan = "2" rowspan="7"><center>Monthly<center></td>
+</tr>
+<tr>
+<td style="border:1px solid !important;" colspan = "2">House Rent Allowance(HRA)</td>
+<td style="border:1px solid !important;" colspan = "2" align="right">{{frappe.utils.fmt_money(doc.house_rent_allowrance_per_month,currency='INR')}}</td>
+<td style="border:1px solid !important;" colspan = "2" align="right">{{frappe.utils.fmt_money(doc.house_rent_allowrance_per_annum,currency='INR')}}</td>
+</tr>
+<tr>
+<td style="border:1px solid !important;" colspan = "2">Conveyance Allowance</td>
+<td style="border:1px solid !important;" colspan = "2" align="right">{{frappe.utils.fmt_money(doc.conveyance_allowance_per_month,currency='INR')}}</td>
+<td style="border:1px solid !important;" colspan = "2" align="right">{{frappe.utils.fmt_money(doc.conveyance_allowance_per_annum,currency='INR')}}</td>
+</tr>
+<tr>
+<td style="border:1px solid !important;" colspan = "2">Education Allowance</td>
+<td style="border:1px solid !important;" colspan = "2" align="right">{{frappe.utils.fmt_money(doc.education_allowance_per_month,currency='INR')}}</td>
+<td style="border:1px solid !important;" colspan = "2" align="right">{{frappe.utils.fmt_money(doc.education_allowance_per_annum,currency='INR')}}</td>
+</tr>
+<tr>
+<td style="border:1px solid !important;" colspan = "2">Medical Allowance</td>
+<td style="border:1px solid !important;" colspan = "2" align="right">{{frappe.utils.fmt_money(doc.medical_allowance_per_month,currency='INR')}}</td>
+<td style="border:1px solid !important;" colspan = "2" align="right">{{frappe.utils.fmt_money(doc.medical_allowance_per_annum,currency='INR')}}</td>
+</tr>
+<tr>
+<td style="border:1px solid !important;" colspan = "2">Spl.Allowance</td>
+<td style="border:1px solid !important;" colspan = "2" align="right">{{frappe.utils.fmt_money(doc.special_allowance_per_month,currency='INR')}}</td>
+<td style="border:1px solid !important;" colspan = "2" align="right">{{frappe.utils.fmt_money(doc.special_allowance_per_annum,currency='INR')}}</td>
+</tr>
+<tr>
+<td style="border:1px solid !important;" colspan = "2">Gross Salary (A)</td>
+<td style="border:1px solid !important;" colspan = "2" align="right"><strong>{{frappe.utils.fmt_money(doc.gross_salary_per_month,currency='INR')}}</strong></td>
+<td style="border:1px solid !important;" colspan = "2" align="right"><strong>{{frappe.utils.fmt_money(doc.gross_salary_per_annum,currency='INR')}}</strong></td>
+</tr>
+<tr>
+<td style="border:1px solid !important;" align="center" colspan = "8" ><strong>Standard Deductions</strong></td></tr>
+<tr>
+<td style="border:1px solid !important;" colspan = "2">EPF Contribution (Employee)</td>
+<td style="border:1px solid !important;" colspan = "2" align="right">{{frappe.utils.fmt_money(doc.epf_contribution_per_month,currency='INR')}}</td>
+<td style="border:1px solid !important;" colspan = "2" align="right">{{frappe.utils.fmt_money(doc.epf_contribution_per_annum,currency='INR')}}</td>
+<td style="border:1px solid !important;vertical-align:middle !important" colspan = "2" rowspan="5"><center>Monthly</center></td> 
+
+</tr>
+<tr>
+<td style="border:1px solid !important;" colspan = "2">ESIC Contribution (Employee)</td>
+<td style="border:1px solid !important;" colspan = "2" align="right">{{frappe.utils.fmt_money(doc.esic_contribution_per_month,currency='INR')}}</td>
+<td style="border:1px solid !important;" colspan = "2" align="right">{{frappe.utils.fmt_money(doc.esic_contribution_per_annum,currency='INR')}}</td>
+</tr>
+<tr>
+<td style="border:1px solid !important;" colspan = "2">Professional Tax</td>
+<td style="border:1px solid !important;" colspan = "2" align="right">{{frappe.utils.fmt_money(doc.professional_tax_per_month,currency='INR')}}</td>
+<td style="border:1px solid !important;" colspan = "2" align="right">{{frappe.utils.fmt_money(doc.professional_tax_per_annum,currency='INR')}}</td>
+</tr>
+<tr>
+<td style="border:1px solid !important;" colspan = "2">Deduction(B)</td>
+<td style="border:1px solid !important;" colspan = "2" align="right">{{frappe.utils.fmt_money(doc.deduction_per_month,currency='INR')}}</td>
+<td style="border:1px solid !important;" colspan = "2" align="right">{{frappe.utils.fmt_money(doc.deduction_per_annum,currency='INR')}}</td>
+</tr>
+<td style="border:1px solid !important;" colspan = "2">Net Salary(A-B)</td>
+<td style="border:1px solid !important;" colspan = "2" align="right"><strong>{{frappe.utils.fmt_money(doc.net_salary_per_month_1,currency='INR')}}</strong></td>
+<td style="border:1px solid !important;" colspan = "2" align="right"><strong>{{frappe.utils.fmt_money(doc.net_salary_per_annum1,currency='INR')}}</strong></td>
+</tr>
+<tr>
+<td style="border:1px solid !important;" align="center" colspan = "8" ><strong>Allowances</strong></td></tr>
+<tr>
+<tr>
+<td style="border:1px solid !important;" colspan = "2">Laptop Allowance</td>
+<td style="border:1px solid !important;" colspan = "2" align="right">{{frappe.utils.fmt_money(doc.laptop_allowance_per_month,currency='INR')}}</td>
+<td style="border:1px solid !important;" colspan = "2" align="right">{{frappe.utils.fmt_money(doc.laptop_allowance_per_annum,currency='INR')}}</td>
+<td style="border:1px solid !important;vertical-align:middle !important" colspan = "2" rowspan="3">Monthly</td> 
+</tr>
+<tr>
+<td style="border:1px solid !important;" colspan = "2">Mobile Allowance</td>
+<td style="border:1px solid !important;" colspan = "2" align="right">{{frappe.utils.fmt_money(doc.mobile_allowance_per_month,currency='INR')}}</td>
+<td style="border:1px solid !important;" colspan = "2" align="right">{{frappe.utils.fmt_money(doc.mobile_allowance_per_annum,currency='INR')}}</td>
+</tr>
+<td style="border:1px solid !important;" colspan = "2">Take Home Salary</td>
+<td style="border:1px solid !important;" colspan = "2" align="right"><strong>{{frappe.utils.fmt_money(doc.take_home_salary_per_month,currency='INR')}}</strong></td>
+<td style="border:1px solid !important;" colspan = "2" align="right"><strong>{{frappe.utils.fmt_money(doc.take_home_salary_per_annum,currency='INR')}}</strong></td>
+</tr>
+
+<tr>
+<td style="border:1px solid !important;" align="center" colspan = "8" ><strong>Other Compensation</strong></td></tr>
+<tr>
+<td style="border:1px solid !important;" colspan = "2">EPF Contribution (Employer)</td>
+<td style="border:1px solid !important;" colspan = "2" align="right">{{frappe.utils.fmt_money(doc.epf_contribution_per_month3,currency='INR')}}</td>
+<td style="border:1px solid !important;" colspan = "2" align="right">{{frappe.utils.fmt_money(doc.epf_contribution_per_annum_4,currency='INR')}}</td>
+<td style="border:1px solid !important;vertical-align:middle !important" colspan = "2" rowspan = "3"><center>Monthly</center></td> 
+</tr>
+<tr>
+<td style="border:1px solid !important;" colspan = "2">ESI Contribution (Employer)</td>
+<td style="border:1px solid !important;" colspan = "2" align="right">{{frappe.utils.fmt_money(doc.esi_contribution_per_month,currency='INR')}}</td>
+<td style="border:1px solid !important;" colspan = "2" align="right">{{frappe.utils.fmt_money(doc.esi_contribution_per_annum,currency='INR')}}</td>
+</tr>
+<tr>
+<td style="border:1px solid !important;" colspan = "2">Insurances - GPA, GMC, WC</td>
+<td style="border:1px solid !important;" colspan = "2" align="right">{{frappe.utils.fmt_money(doc.insurances_per_month,currency='INR')}}</td>
+<td style="border:1px solid !important;" colspan = "2" align="right">{{frappe.utils.fmt_money(doc.insurances_per_annum,currency='INR')}}</td>
+</tr>
+<tr>
+<td style="border:1px solid !important;" align="center" colspan = "8" ><strong>Cost To Company (CTC)</strong></td></tr>
+<tr>
+<td style="border:1px solid !important;" colspan = "2">CTC</td>
+<td style="border:1px solid !important;" colspan = "2" align="right"><strong>{{frappe.utils.fmt_money(doc.ctc_per_month,currency='INR')}}</strong></td>
+<td style="border:1px solid !important;" colspan = "2" align="right">{{frappe.utils.fmt_money(doc.ctc_per_annum,currency='INR')}}</td>
+<td style="border:1px solid !important;"><center></center></td> 
+</tr>
+<tr>
+<td style="border:1px solid !important;" colspan = "8" rowspan = "4" >For VOLTECH HR SERVICES PVT LTD &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;Acceptance by Employee <br><br><br><br> This is a Computer Generated Document.No Signature Required. &emsp;&emsp;&emsp;Date:</td>
+</tr>
+</table>

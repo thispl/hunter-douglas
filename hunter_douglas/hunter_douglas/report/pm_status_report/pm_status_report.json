@@ -1,0 +1,24 @@
+{
+ "add_total_row": 0, 
+ "apply_user_permissions": 1, 
+ "creation": "2019-03-21 14:31:25.568303", 
+ "disabled": 0, 
+ "docstatus": 0, 
+ "doctype": "Report", 
+ "idx": 0, 
+ "is_standard": "Yes", 
+ "letter_head": "Performance appraisal", 
+ "modified": "2019-03-21 14:31:37.609020", 
+ "modified_by": "Administrator", 
+ "module": "Hunter Douglas", 
+ "name": "PM Status Report", 
+ "owner": "Administrator", 
+ "ref_doctype": "Performance Management Reviewer", 
+ "report_name": "PM Status Report", 
+ "report_type": "Script Report", 
+ "roles": [
+  {
+   "role": "System Manager"
+  }
+ ]
+}

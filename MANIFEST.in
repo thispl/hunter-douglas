@@ -1,0 +1,18 @@
+include MANIFEST.in
+include requirements.txt
+include *.json
+include *.md
+include *.py
+include *.txt
+recursive-include hunter_douglas *.css
+recursive-include hunter_douglas *.csv
+recursive-include hunter_douglas *.html
+recursive-include hunter_douglas *.ico
+recursive-include hunter_douglas *.js
+recursive-include hunter_douglas *.json
+recursive-include hunter_douglas *.md
+recursive-include hunter_douglas *.png
+recursive-include hunter_douglas *.py
+recursive-include hunter_douglas *.svg
+recursive-include hunter_douglas *.txt
+recursive-exclude hunter_douglas *.pyc

@@ -1,0 +1,24 @@
+{
+ "add_total_row": 0, 
+ "apply_user_permissions": 1, 
+ "creation": "2019-04-22 13:04:53.618644", 
+ "disabled": 0, 
+ "docstatus": 0, 
+ "doctype": "Report", 
+ "idx": 0, 
+ "is_standard": "Yes", 
+ "letter_head": "Performance appraisal", 
+ "modified": "2019-04-22 13:05:15.874144", 
+ "modified_by": "Administrator", 
+ "module": "Hunter Douglas", 
+ "name": "Updated Attendance Recapitulation", 
+ "owner": "Administrator", 
+ "ref_doctype": "Attendance", 
+ "report_name": "Updated Attendance Recapitulation ", 
+ "report_type": "Script Report", 
+ "roles": [
+  {
+   "role": "Administrator"
+  }
+ ]
+}

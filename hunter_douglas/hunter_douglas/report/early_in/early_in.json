@@ -1,0 +1,30 @@
+{
+ "add_total_row": 0, 
+ "apply_user_permissions": 1, 
+ "creation": "2018-12-04 16:30:10.967902", 
+ "disabled": 1, 
+ "docstatus": 0, 
+ "doctype": "Report", 
+ "idx": 0, 
+ "is_standard": "Yes", 
+ "modified": "2018-12-28 18:32:40.863603", 
+ "modified_by": "Administrator", 
+ "module": "Hunter Douglas", 
+ "name": "Early In", 
+ "owner": "Administrator", 
+ "query": "Select `tabAttendance`.`employee` AS \"User ID:Link/Employee:100\",\n       `tabAttendance`.`employee_name` AS \"Name:Data:100\",\n       `tabAttendance`.`attendance_date` AS \"Date:Date:100\"\n\nFrom\n     `tabAttendance`", 
+ "ref_doctype": "Attendance", 
+ "report_name": "Early In", 
+ "report_type": "Query Report", 
+ "roles": [
+  {
+   "role": "System Manager"
+  }, 
+  {
+   "role": "HR User"
+  }, 
+  {
+   "role": "HR Manager"
+  }
+ ]
+}

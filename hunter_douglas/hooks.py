@@ -125,7 +125,8 @@ scheduler_events = {
 # 	],
     "daily": [
         "hunter_douglas.custom.fetch_att_prev",
-        "hunter_douglas.update_attendance.mark_hd"
+        "hunter_douglas.update_attendance.mark_hd",
+        "hunter_douglas.hunter_douglas.doctype.induction_test.induction_test.create_feedback"
     ],
     "cron": {
         "0 7-23/1 * * *":[
@@ -143,6 +144,9 @@ scheduler_events = {
         "00 19 * * *":[
             "hunter_douglas.custom.fetch_att"
             "hunter_douglas.custom.out_punch_alert"
+        ],
+        "0 0 1 1 *":[
+            "hunter_douglas.custom.retirement_alert"
         ]
     }
 # 	"weekly": [

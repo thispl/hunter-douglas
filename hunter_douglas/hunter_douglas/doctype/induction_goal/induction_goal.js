@@ -19,11 +19,18 @@ frappe.ui.form.on('Induction Goal', {
 	before_submit(frm) {
 		if (frappe.user.has_role("Reviewer")) {
 			if(frm.doc.reviewer=="Confirmed"){
-				console.log(frm.doc.employee_id)
 				frappe.db.set_value("Employee", frm.doc.employee_id, "status", "Active")
-				console.log(frm.doc.employee_id)
 			}
 		}
 		
+	},
+	validate: function (frm) {
+		var total = 0;
+		$.each(frm.doc.goal, function (i, d) {
+			total += Number(d.weightage)
+		})
+		if (total != 100) {
+			frappe.throw("Weightage should be 100")
+		}
 	}
 });

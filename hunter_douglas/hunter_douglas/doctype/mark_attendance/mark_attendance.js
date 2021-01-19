@@ -5,11 +5,6 @@ frappe.ui.form.on('Mark Attendance', {
 	refresh(frm){
 		frm.disable_save()
 	},
-	// in_time(frm){
-	// let d = moment(frm.doc.in_time);
-	// in_ti=d.add(8, "In Time");
-	// console.log(in_ti)
-	// },
 	submit(frm){
 		var today_date =frappe.datetime.nowdate()
 		frappe.call({

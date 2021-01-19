@@ -189,12 +189,16 @@ def update_pm_manager(doc, method):
 
 @frappe.whitelist()
 def update_pm_hod(doc, method):
+    frappe.errprint("saru")
     if doc.manager == frappe.session.user:
+        frappe.errprint(doc.manager)
         pmm = frappe.db.get_value("Performance Management HOD", {
                                       "employee_code": doc.employee_code,"appraisal_year":doc.appraisal_year})
         if pmm:
+            frappe.errprint("hi")
             epmm = frappe.get_doc("Performance Management HOD", pmm)
         else:
+            frappe.errprint("hello")
             epmm = frappe.new_doc("Performance Management HOD")
         epmm.update({
             "employee_code": doc.employee_code,

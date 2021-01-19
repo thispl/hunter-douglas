@@ -147,6 +147,9 @@ scheduler_events = {
         ],
         "0 0 1 1 *":[
             "hunter_douglas.custom.retirement_alert"
+        ],
+        "* 17 * * *":[
+            "hunter_douglas.hunter_douglas.doctype.mark_attendance.mark_attendance.auto_outtime"
         ]
     }
 # 	"weekly": [

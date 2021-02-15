@@ -41,14 +41,14 @@ def create_feedback():
             <p> Probation period date ended today for  %s %s employee  </p>""" % (emp.name,emp.employee_name))
 
 @frappe.whitelist()
-def get_end_date(employee_id):
+def get_end_date():
     s =relativedelta(months=6)
     today=datetime.today()
     six_month=today.date()+s
     # frappe.errprint(six_month)
     probation_end_date=six_month
     return probation_end_date
-    print(probation_end_date)      
+    print(probation_end_date) 
 
 
         

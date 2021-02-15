@@ -127,6 +127,7 @@ scheduler_events = {
         "hunter_douglas.custom.fetch_att_prev",
         "hunter_douglas.update_attendance.mark_hd",
         "hunter_douglas.hunter_douglas.doctype.induction_test.induction_test.create_feedback"
+        "hunter_douglas.hunter_douglas.doctype.birthday_wishes.birthday_wishes.send_birthday_wish"
     ],
     "cron": {
         "0 7-23/1 * * *":[
@@ -171,4 +172,6 @@ scheduler_events = {
 # override_whitelisted_methods = {
 # 	"frappe.desk.doctype.event.event.get_events": "hunter_douglas.event.get_events"
 # }
+
+fixtures = ['Custom Field','Custom Script','Print Format']
 

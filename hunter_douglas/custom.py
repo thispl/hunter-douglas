@@ -19,6 +19,8 @@ from frappe.email.email_body import (replace_filename_with_cid,
 import dateutil.parser
 from dateutil.relativedelta import relativedelta
 # from hunter_douglas.update_attendance import update_att_from_shift
+from json import JSONEncoder
+from datetime import datetime
 
 
 @frappe.whitelist()
@@ -2035,13 +2037,18 @@ def des_update_from_old():
 def retirement_alert():
     year_start = (datetime.today()).date()
     year_end = add_months(year_start,12)
-
-    employees = frappe.db.sql("""select name,employee_name,prefered_email,date_of_retirement FROM `tabEmployee` where date_of_retirement BETWEEN '%s' AND '%s' ANd status = "Active" """ %(year_start,year_end),as_dict=True)    
+    print(year_start)
+    employees = frappe.db.sql("""select name,employee_name,company_email,date_of_retirement FROM `tabEmployee` where date_of_retirement BETWEEN '%s' AND '%s' ANd status = "Active" """ %(year_start,year_end),as_dict=True)    
     for emp in employees:
-        print(emp.name)
+        print(emp.company_email)
         frappe.sendmail(
-            recipients=["%s"],
+            recipients= [ "%s" ] ,
             subject='Retirement Announcement' ,
             message="""<p>Dear %s,</p>
             <p> It saddens us to announce the retirement of %s. %s contributions will always be valued and remembered. %s hard work, commitment, and dedication are worthy of admiration. 
-On behalf of every one, I would like to wish %s the best of luck. </p>""" % (emp.name,emp.employee_name,emp.employee_name,emp.employee_name,emp.employee_name))
+On behalf of every one, I would like to wish %s the best of luck. </p>""" % (emp.company_email,emp.employee_name,emp.employee_name,emp.employee_name,emp.employee_name))
+
+@frappe.whitelist()
+def get_six_month(date):
+    ex_date = add_months(date,6)
+    return ex_date

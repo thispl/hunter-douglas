@@ -28,9 +28,10 @@ frappe.ui.form.on('Induction Test', {
 			frappe.call({
 				"method":"hunter_douglas.hunter_douglas.doctype.induction_test.induction_test.get_end_date",
 				"args":{
-					"employee_id":frm.doc.employee_id
+				
 				},
 				callback: function(r){
+					console.log(r)
 					probation_end_date=r.message
 					frappe.db.set_value('Employee', frm.doc.employee_id, {
 						'employment_type': 'Probation',

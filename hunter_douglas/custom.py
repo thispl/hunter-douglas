@@ -17,7 +17,10 @@ import xml.etree.ElementTree as ET
 from frappe.email.email_body import (replace_filename_with_cid,
     get_email, inline_style_in_html, get_header)
 import dateutil.parser
+from dateutil.relativedelta import relativedelta
 # from hunter_douglas.update_attendance import update_att_from_shift
+from json import JSONEncoder
+from datetime import datetime
 
 
 @frappe.whitelist()
@@ -411,6 +414,10 @@ def send_birthday_wish():
             users = [u.email_id or u.name for u in get_enabled_system_users()]
         for e in birthdays:
             age = calculate_age(e.date_of_birth)
+<<<<<<< HEAD
+=======
+            print e
+>>>>>>> 7326702e0fb20d5d79f1197efee756a29a62c7cc
             args = dict(employee=e.employee_name,age=age,wish=wish['wish'],company=frappe.defaults.get_defaults().company,photo=e.image)
             # frappe.sendmail(recipients=filter(lambda u: u not in (e.company_email, e.personal_email, e.user_id), users),
             frappe.sendmail(recipients=['sivaranjani.s@voltechgroup.com'],
@@ -717,7 +724,11 @@ def continuous_absentees():
     employees = frappe.db.sql(query,as_dict=True) 
     for emp in employees:
         if emp.employee not in employees_list:
+<<<<<<< HEAD
             print(emp)
+=======
+            print emp
+>>>>>>> 7326702e0fb20d5d79f1197efee756a29a62c7cc
 
 
 def validate_if_attendance_not_applicable(employee, attendance_date):
@@ -827,6 +838,10 @@ def calculate_comp_off():
                     attendance = frappe.get_doc("Attendance", {"employee":emp.name,"attendance_date": preday})
                     if attendance.work_time > actual_work_hours:
                         ot = attendance.work_time - actual_work_hours
+<<<<<<< HEAD
+=======
+                        print emp.name,preday,ot
+>>>>>>> 7326702e0fb20d5d79f1197efee756a29a62c7cc
                         if emp.category == "Management Staff":
                             if ot > (timedelta(hours = 3)):
                                 calculate_ot(emp.name,preday,ot)
@@ -1129,6 +1144,10 @@ def updated_att_adjust():
     for a in attendance:
         att = frappe.get_doc("Attendance",a.name)
         admin_approved_status = att.admin_approved_status
+<<<<<<< HEAD
+=======
+        print att
+>>>>>>> 7326702e0fb20d5d79f1197efee756a29a62c7cc
         if att and admin_approved_status == "Present":
             att.update({
                 "status":"Present",
@@ -1365,6 +1384,10 @@ def fetch_att_temp():
                         second_half_status = att.find('secondhalf').text
                         date = datetime.strptime((att.find('ProcessDate').text.replace("/","")), "%d%m%Y").date()
                         date_f = date.strftime("%Y-%m-%d")
+<<<<<<< HEAD
+=======
+                        print userid,date_f
+>>>>>>> 7326702e0fb20d5d79f1197efee756a29a62c7cc
                         work_time = timedelta(minutes=flt(att.find('WorkTime').text))
                         over_time = timedelta(minutes=flt(att.find('Overtime').text))
                         late_in = timedelta(minutes=flt(att.find('LateIn').text))
@@ -1698,6 +1721,10 @@ def update_ecode():
     pmm = frappe.get_all("Performance Management Reviewer",fields=['name','employee_code'])
     for pm in pmm:
         # print loop.index
+<<<<<<< HEAD
+=======
+        print pm['name']
+>>>>>>> 7326702e0fb20d5d79f1197efee756a29a62c7cc
         frappe.db.set_value("Performance Management Reviewer",pm['name'],"employee_code1",pm['employee_code'])
         frappe.db.commit()
 
@@ -2026,9 +2053,30 @@ def des_update_from_old():
             at_id.db_update()
             frappe.db.commit()
 
+<<<<<<< HEAD
 
 
 
 
         
         
+=======
+def retirement_alert():
+    year_start = (datetime.today()).date()
+    year_end = add_months(year_start,12)
+    print(year_start)
+    employees = frappe.db.sql("""select name,employee_name,company_email,date_of_retirement FROM `tabEmployee` where date_of_retirement BETWEEN '%s' AND '%s' ANd status = "Active" """ %(year_start,year_end),as_dict=True)    
+    for emp in employees:
+        print(emp.company_email)
+        frappe.sendmail(
+            recipients= [ "%s" ] ,
+            subject='Retirement Announcement' ,
+            message="""<p>Dear %s,</p>
+            <p> It saddens us to announce the retirement of %s. %s contributions will always be valued and remembered. %s hard work, commitment, and dedication are worthy of admiration. 
+On behalf of every one, I would like to wish %s the best of luck. </p>""" % (emp.company_email,emp.employee_name,emp.employee_name,emp.employee_name,emp.employee_name))
+
+@frappe.whitelist()
+def get_six_month(date):
+    ex_date = add_months(date,6)
+    return ex_date
+>>>>>>> 7326702e0fb20d5d79f1197efee756a29a62c7cc

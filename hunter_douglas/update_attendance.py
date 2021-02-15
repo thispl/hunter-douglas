@@ -804,7 +804,7 @@ def mark_hd():
                 late_in = early_out = timedelta(seconds=0)
 
             if att.status == "Present" or att.status == "Half Day":
-                print att.status,att.employee,att.attendance_date
+                # print att.status,att.employee,att.attendance_date
                 exc = frappe.db.get_list("Auto Present Employees",fields=['employee'])
                 auto_present_list = []
                 for e in exc:
@@ -902,7 +902,7 @@ def temp_att():
                 late_in = early_out = timedelta(seconds=0)
 
             if att.status == "Present" or att.status == "Half Day":
-                print att.status,att.employee,att.attendance_date
+                # print att.status,att.employee,att.attendance_date
                 exc = frappe.db.get_list("Auto Present Employees",fields=['employee'])
                 auto_present_list = []
                 for e in exc:

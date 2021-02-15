@@ -177,14 +177,37 @@ frappe.ui.form.on('Performance Management Self', {
                         "year": past_year
                     },
                     callback: function (r) {
+                        console.log(past_year)
                         if (r.message == 'NA') {
-                            for (var i = 0; i < 7; i++) {
-                                var row = frappe.model.add_child(frm.doc, "PM Goal Setting Self", "key_result_area");
-                                row.self_rating == ""
-                            }
-                            refresh_field("key_result_area")
+                            console.log(r.message)
+                            frappe.call({
+                                "method": "frappe.client.get",
+                                args: {
+                                    doctype: "Induction Goal",
+                                    filters: {
+                                        "employee_id": frm.doc.employee_id
+                                    }
+                                },
+                                callback: function (r) {
+                                    console.log(r.message)
+                                    if (r.message.goal) {
+                                        $.each(r.message.goal, function (i, d) {
+                                            var row = frappe.model.add_child(frm.doc, "PM Goal Setting Self", "key_result_area");
+                                            row.goal_setting_for_current_year = d.kpi;
+                                            row.performance_measure = d.performance_measure;
+                                            row.weightage_w_100 = d.timeline;
+                                            row.weightage = d.weightage;
+                                            row.self_rating=d.self_rating
+                                        })
+                                        refresh_field("key_result_area")
+                                    }
+                                   
+
+                                }
+                            })
+                            
                         }
-                        else {
+                        else if(r.message != 'NA'){
                             frappe.call({
                                 "method": "frappe.client.get",
                                 args: {
@@ -203,6 +226,13 @@ frappe.ui.form.on('Performance Management Self', {
                                             row.weightage_w_100 = d.weightage_w_100;
                                             row.weightage = d.weightage;
                                         })
+                                        refresh_field("key_result_area")
+                                    }
+                                    else{
+                                        for (var i = 0; i < 7; i++) {
+                                            var row = frappe.model.add_child(frm.doc, "PM Goal Setting Self", "key_result_area");
+                                            row.self_rating == ""
+                                        }
                                         refresh_field("key_result_area")
                                     }
 
@@ -276,6 +306,7 @@ frappe.ui.form.on('Performance Management Self', {
         cur_frm.fields_dict['sales_target'].grid.wrapper.find('.grid-add-row').hide();
         cur_frm.fields_dict['sales_target'].grid.wrapper.find('.grid-remove-rows').hide();
         cur_frm.fields_dict['competency_assessment1'].grid.wrapper.find('.grid-add-row').hide();
+        cur_frm.fields_dict['job_analysis'].grid.wrapper.find('.grid-remove-rows').show();
         cur_frm.fields_dict['job_analysis'].grid.wrapper.find('.grid-add-row').hide();
         // cur_frm.fields_dict['key_result_area'].grid.wrapper.find('.grid-add-row').hide();
         cur_frm.fields_dict['key_results_area'].grid.wrapper.find('.grid-add-row').hide();

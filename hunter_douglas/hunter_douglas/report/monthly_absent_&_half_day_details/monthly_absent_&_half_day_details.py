@@ -40,8 +40,8 @@ def execute(filters=None):
                 day_f = str(filters.year) +'-'+str(filters.month)+'-'+str(day)
             query = """select att.status,att.attendance_date from `tabAttendance` att where att.status = 'Absent' and att.employee = '%s' and att.attendance_date='%s'""" % (emp.employee,day_f)
             attend = frappe.db.sql(query,as_dict=1)     
-            if attend:
-                for at in attend:
+            # if attend:
+            #     for at in attend:
             #         holiday_list = frappe.db.get_value("Employee", {'employee':emp.employee},['holiday_list'])
             #         hd = frappe.db.get_all("Holiday", filters={'holiday_date':at.attendance_date,'parent': holiday_list},fields=['name','holiday_date'])                   
             #         if not hd:

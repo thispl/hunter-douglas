@@ -36,7 +36,7 @@ def execute(filters=None):
                 day_f = str(filters.year) +'-'+str(filters.month)+'-'+str(day)  
             attend = frappe.db.sql(
                     """select att.status,att.attendance_date from `tabAttendance` att where att.status = 'Absent' and att.employee = '%s' and att.attendance_date='%s'""" % (emp.employee,day_f) ,as_dict=1)      
-    	    if attend:
+            if attend:
                 for at in attend:
                     holiday_list = frappe.db.get_value("Employee", {'employee':emp.employee},['holiday_list'])
                     hd = frappe.db.get_all("Holiday", filters={'holiday_date':at.attendance_date,'parent': holiday_list},fields=['name','holiday_date'])
@@ -46,7 +46,7 @@ def execute(filters=None):
                             emp_status.append(at.attendance_date.strftime("%d"))
             half_day_attendance = frappe.db.sql(
                     """select att.status,att.attendance_date from `tabAttendance` att where att.status = 'Half Day' and att.employee = '%s' and att.attendance_date='%s'""" % (emp.employee,day_f) ,as_dict=1)      
-    	    if half_day_attendance:
+            if half_day_attendance:
                 for hda in half_day_attendance:
                     holiday_list1 = frappe.db.get_value("Employee", {'employee':emp.employee},['holiday_list'])
                     hds = frappe.db.get_all("Holiday", filters={'holiday_date':at.attendance_date,'parent': holiday_list1},fields=['name','holiday_date'])
@@ -86,12 +86,12 @@ def get_conditions(filters):
         conditions += "AND employee = '%s'" % filters["employee"]
 
     if filters.get("department"):
-    	conditions += " AND department = '%s'" % filters["department"]
+        conditions += " AND department = '%s'" % filters["department"]
                 
     if filters.get("location"):
-    	conditions += " AND location_name = '%s'" % filters["location"]
+        conditions += " AND location_name = '%s'" % filters["location"]
     
     if filters.get("business_unit"):
-    	conditions += " AND business_unit = '%s'" % filters["business_unit"]
+        conditions += " AND business_unit = '%s'" % filters["business_unit"]
         
     return conditions

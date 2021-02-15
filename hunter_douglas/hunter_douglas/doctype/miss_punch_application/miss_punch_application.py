@@ -412,6 +412,7 @@ def update_attendance(employee,attendance_date,from_date,to_date,from_date_sessi
 
 
 def get_mr_out(emp,day):
+    # print emp,day
     from_time = to_time = 0
     day = (datetime.strptime(str(day), '%Y-%m-%d')).date()
     dt = datetime.combine(day, datetime.min.time())

@@ -87,7 +87,7 @@ def execute(filters=None):
                         # frappe.errprint(get_continuous_absents(att.employee,att.attendance_date))
                         row += ["AB","AB"]       
                     else:    
-						[att.first_half_status,att.second_half_status]        
+                        [att.first_half_status,att.second_half_status]        
             else:
                 exc = frappe.db.get_list("Auto Present Employees",fields=['employee'])
                 auto_present_list = []

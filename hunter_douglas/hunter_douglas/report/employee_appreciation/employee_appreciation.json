@@ -1,0 +1,31 @@
+{
+ "add_total_row": 0,
+ "columns": [],
+ "creation": "2021-06-10 14:19:58.793866",
+ "disable_prepared_report": 0,
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [],
+ "idx": 0,
+ "is_standard": "Yes",
+ "json": "{\"filters\":[],\"fields\":[[\"name\",\"Employee Appreciation\"],[\"employee_name\",\"Employee Appreciation\"],[\"purpose_of_appreciation\",\"Employee Appreciation\"],[\"colleague_name\",\"Employee Appreciation\"],[\"date_of_appreciation\",\"Employee Appreciation\"],[\"owner\",\"Employee Appreciation\"],[\"creation\",\"Employee Appreciation\"],[\"idx\",\"Employee Appreciation\"]],\"order_by\":\"`tabEmployee Appreciation`.`modified` desc\",\"page_length\":20,\"column_widths\":{\"name\":120,\"employee_name\":120,\"purpose_of_appreciation\":120,\"colleague_name\":120,\"date_of_appreciation\":120,\"owner\":120,\"creation\":120,\"idx\":120},\"group_by\":null}",
+ "letter_head": "PM Calibration",
+ "modified": "2021-06-10 17:14:00.236869",
+ "modified_by": "Administrator",
+ "module": "Hunter Douglas",
+ "name": "Employee Appreciation",
+ "owner": "Administrator",
+ "prepared_report": 0,
+ "ref_doctype": "Employee Appreciation",
+ "report_name": "Employee Appreciation",
+ "report_type": "Report Builder",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Employee"
+  }
+ ]
+}

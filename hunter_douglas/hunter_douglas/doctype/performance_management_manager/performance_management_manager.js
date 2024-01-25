@@ -3,6 +3,27 @@
 
 frappe.ui.form.on('Performance Management Manager', {
     validate: function (frm) {
+       
+        var total_amount = 0;
+        var total_amount1 = 0;
+    $.each(frm.doc.key_result_area, function(index, row) {
+        total_amount += row.weightage;
+        console.log(total_amount)
+    });
+    $.each(frm.doc.key_results_area, function(index, row) {
+        total_amount1 += row.weightage;
+        console.log(total_amount)
+    });
+    frm.set_value('total_weightage', total_amount);
+    if (frm.doc.total_weightage > 100 || frm.doc.total_weightage < 100){
+        validated = false
+        frappe.throw(__("Weightage must be equal to 100"))
+    }
+    frm.set_value('total_weightage1', total_amount1);
+    if (frm.doc.total_weightage1 > 100 || frm.doc.total_weightage1 < 100){
+        validated = false
+        frappe.throw(__("Weightage must be equal to 100"))
+    }
         var tot_man = 0;
         var child_man = frm.doc.key_result_area;
         $.each(child_man, function (i, d) {

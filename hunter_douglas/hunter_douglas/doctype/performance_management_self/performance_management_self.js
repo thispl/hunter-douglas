@@ -2,7 +2,43 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on('Performance Management Self', {
+    // onload:function(listview){
+    //     frappe.model.get_value('Employee', { 'user_id': frappe.session.user }, 'employee_number',
+    //         function (data) {
+    //             if (data) {
+    //                 listview.filter_area.clear()
+    //                 listview.filter_area.add([[listview.doctype, "employee_code", '=', data.employee_number]]);
+    //                 listview.filter_area.add([[listview.doctype, "appraisal_year", '=', "2022"]]);
+    //                 listview.refresh();     }
+    //         })
+    //     console.log("helo")
+    // },
+
     validate: function (frm) {
+      
+
+
+        var total_amount = 0;
+        var total_amount1 = 0;
+    $.each(frm.doc.key_result_area, function(index, row) {
+        total_amount += row.weightage;
+        console.log(total_amount)
+    });
+    $.each(frm.doc.key_results_area, function(index, row) {
+        total_amount1 += row.weightage;
+        console.log(total_amount)
+    });
+    frm.set_value('total_weightage', total_amount);
+    if (frm.doc.total_weightage > 100 || frm.doc.total_weightage < 100){
+        validated = false
+        frappe.throw(__("Weightage must be equal to 100"))
+    }
+    frm.set_value('total_weightage1', total_amount1);
+    if (frm.doc.total_weightage1 > 100 || frm.doc.total_weightage1 < 100){
+        validated = false
+        frappe.throw(__("Weightage must be equal to 100"))
+    }
+
         var tot_comp = 0;
         var avg_comp = 0;
         $.each(frm.doc.competency_assessment1, function (i, d) {
@@ -18,15 +54,18 @@ frappe.ui.form.on('Performance Management Self', {
         var tot_pre = 0;
         var child_pre = frm.doc.key_result_area;
         $.each(child_pre, function (i, d) {
-            tot_pre += parseInt(d.self_rating)
+            // tot_pre += parseInt(d.self_rating)
+            tot_pre += parseInt(d.self_rating * (d.weightage))
+            console.log(tot_pre/100)
+
         })
-        if (parseInt(tot_pre) > 1) {
-            var avg_pre = (tot_pre / child_pre.length).toFixed(1);
-            frm.set_value("avg_pre", avg_pre)
-        }
-        else {
-            frm.set_value("avg_pre", "0")
-        }
+        // if (parseInt(tot_pre) > 1) {
+        //     var avg_pre = (tot_pre / child_pre.length).toFixed(1);
+            frm.set_value("avg_pre", tot_pre/100)
+        // }
+        // else {
+        //     frm.set_value("avg_pre", "0")
+        // }
         if (frm.doc.workflow_state == 'Draft') {
             var child1 = frm.doc.key_result_area;
             var len1 = child1.length;
@@ -81,7 +120,7 @@ frappe.ui.form.on('Performance Management Self', {
                     frm.set_value("user_id", "emp")
                 } else {
                     frm.set_value("user_id", "")
-                    setTimeout(function () { location.reload() }, 1000);
+                    // setTimeout(function () { location.reload() }, 1000);
                 }
                 frappe.call({
                     "method": "frappe.client.get",
@@ -135,40 +174,6 @@ frappe.ui.form.on('Performance Management Self', {
                         }
                     }
                 })
-                // frappe.call({
-                //     "method": "frappe.client.get_list",
-                //     args: {
-                //         doctype: "Goal Settings",
-                //         filters: { "employee": frm.doc.employee_code }
-                //     },
-                //     callback: function (r) {
-                //         if (r.message) {
-                //             $.each(r.message, function (i, d) {
-                //                 frappe.call({
-                //                     "method": "frappe.client.get",
-                //                     args: {
-                //                         doctype: "Goal Settings",
-                //                         name: d.name
-                //                     },
-                //                     callback: function (r) {
-                //                         if (r.message) {
-                //                             $.each(r.message.goals, function (i, d) {
-                //                                 if (r.message.goals) {
-                //                                     var row = frappe.model.add_child(frm.doc, "PM Goal Setting Self", "key_result_area");
-                //                                     row.goal_setting_for_current_year = d.goal_setting_for_current_year;
-                //                                     row.performance_measure = d.performance_measure;
-                //                                     row.weightage_w_100 = d.weightage_w_100;
-                //                                     row.self_rating = d.self_rating;
-                //                                 }
-                //                             })
-                //                             refresh_field("key_result_area")
-                //                         }
-                //                     }
-                //                 })
-                //             })
-                //         }
-                //     }
-                // })
                 var past_year = Number(frm.doc.appraisal_year) - 1
                 frappe.call({
                     "method": "hunter_douglas.custom.get_previous_year_goals",
@@ -177,34 +182,35 @@ frappe.ui.form.on('Performance Management Self', {
                         "year": past_year
                     },
                     callback: function (r) {
-                        console.log(past_year)
+                        console.log(r.message)
                         if (r.message == 'NA') {
-                            console.log(r.message)
-                            frappe.call({
-                                "method": "frappe.client.get",
-                                args: {
-                                    doctype: "Induction Goal",
-                                    filters: {
-                                        "employee_id": frm.doc.employee_id
-                                    }
-                                },
-                                callback: function (r) {
-                                    console.log(r.message)
-                                    if (r.message.goal) {
-                                        $.each(r.message.goal, function (i, d) {
-                                            var row = frappe.model.add_child(frm.doc, "PM Goal Setting Self", "key_result_area");
-                                            row.goal_setting_for_current_year = d.kpi;
-                                            row.performance_measure = d.performance_measure;
-                                            row.weightage_w_100 = d.timeline;
-                                            row.weightage = d.weightage;
-                                            row.self_rating=d.self_rating
-                                        })
-                                        refresh_field("key_result_area")
-                                    }
+                            // frappe.call({
+                            //     "method": "frappe.client.get",
+                            //     args: {
+                            //         doctype: "Induction Goal",
+                            //         filters: {
+                            //             "employee_id": frm.doc.employee_id
+                            //         }
+                            //     },
+                            //     callback: function (r) {
+                            //         if (r.message.goal) {
+                            //             $.each(r.message.goal, function (i, d) {
+                            //                 var row = frappe.model.add_child(frm.doc, "PM Goal Setting Self", "key_result_area");
+                            //                 row.goal_setting_for_current_year = d.kpi;
+                            //                 row.performance_measure = d.performance_measure;
+                            //                 row.weightage_w_100 = d.timeline;
+                            //                 row.weightage = d.weightage;
+                            //                 row.self_rating=d.self_rating;
+                            //                 row.manager=d.manager;
+                            //                 row.hod=d.hod;
+                            //                 row.reviewer=d.reviewer
+                            //             })
+                            //             refresh_field("key_result_area")
+                            //         }
                                    
 
-                                }
-                            })
+                            //     }
+                            // })
                             
                         }
                         else if(r.message != 'NA'){
@@ -276,7 +282,7 @@ frappe.ui.form.on('Performance Management Self', {
     appraisal_check: function (frm) {
         frappe.model.get_value('Performance Management Self', { 'employee_code': frm.doc.employee_code, 'appraisal_year': frm.doc.appraisal_year }, 'name',
             function (data) {
-                if (data) {
+                if (Object.keys(data).length >= 1) {
                     show_alert(__("PM was already created for selected Employee for the Appraisal Year"))
                 }
             })
@@ -314,7 +320,7 @@ frappe.ui.form.on('Performance Management Self', {
 
         // cur_frm.fields_dict.key_results_area.grid.toggle_reqd("performance_measure")
 
-        d = new Date()
+        var d = new Date()
         if (frm.doc.__islocal) {
             frm.set_value("appraisal_year", String(d.getFullYear() - 1))
         }
@@ -386,10 +392,13 @@ frappe.ui.form.on("PM Competency Self", {
 // frappe.ui.form.on("PM Goal Setting Self", {
 //     weightage: function (frm, cdt, cdn) {
 //         var child = locals[cdt][cdn];
-//         console.log
-//         if (child.weightage > 100) {
-//             frappe.throw(__("Wightage Must be less than or equal to 100"))
-//         }
+//         frm.set_value("total_weightage", child.weightage)
+//         // if (child.weightage == 100 ) {
+//         //     frappe.throw(__("Wightage is equal to 100 you can proceed further"))
+//         // }
+//         // else if (child.weightage > 100 || child.weightage < 100 ) {
+//         //     frappe.throw(__("Wightage Must be equal to 100"))
+//         // }
 // 	}
 // })
 
@@ -397,8 +406,11 @@ frappe.ui.form.on("PM Competency Self", {
 // frappe.ui.form.on("Previous Goal Setting Self", {
 //     weightage: function (frm, cdt, cdn) {
 //         var child = locals[cdt][cdn];
-//         if (child.weightage > 100) {
-//             frappe.throw(__("Wightage Must be less than or equal to 100"))
+//         if (child.weightage == 100 ) {
+//             frappe.throw(__("Wightage is equal to 100 you can proceed further"))
+//         }
+//         else if (child.weightage > 100 || child.weightage < 100 ) {
+//             frappe.throw(__("Wightage Must be equal to 100"))
 //         }
 // 	}
 // })

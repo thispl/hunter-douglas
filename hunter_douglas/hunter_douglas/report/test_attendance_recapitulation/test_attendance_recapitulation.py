@@ -23,9 +23,7 @@ def execute(filters=None):
     if month == 0:
         month = 12
         year = cint(filters.year) - 1
-    # frappe.errprint(cint(filters.year))
-    # frappe.errprint(month)
-    # frappe.errprint(filters.year)    
+  
     tdm = monthrange(cint(filters.year), month)[1]
     days = range(25,tdm+1) + range(1,25)
     exc = frappe.db.get_list("Auto Present Employees",fields=['employee'])
@@ -38,7 +36,6 @@ def execute(filters=None):
         if emp.employee == "1208":
             if str(emp.employee) not in auto_present_list:
                 row = [emp.employee,emp.employee_name,emp.designation]
-                # frappe.errprint(emp.employee)
                 emp_status = [] 
                 halfday_status = []      
                 for day in days:
@@ -104,7 +101,6 @@ def execute(filters=None):
 
                         elif at.status == "Absent":
                             ab_record = validate_if_attendance_not_applicable(emp.employee,at.attendance_date)
-                            frappe.errprint(ab_record[0])
                         #     admin_status = False
                         #     if at.admin_approved_status == 'Present' or at.admin_approved_status == 'WO' or at.admin_approved_status == 'PH':
                         #         admin_status = True  
@@ -112,7 +108,6 @@ def execute(filters=None):
                         #         emp_status.append(at.attendance_date.strftime("%d"))
                         #     if ab_record and not admin_status:
                         #         if emp.employee == "1272":
-                        #             frappe.errprint(ab_record)
                                     
                         # elif at.status == "Present":
                         #     hd_record = validate_if_attendance_not_applicable(emp.employee,at.attendance_date)
@@ -127,7 +122,6 @@ def execute(filters=None):
                         #         elif early_out and early_out > timedelta(minutes=5):
                         #             halfday_status.append(at.attendance_date.strftime("%d"))
                         #         # else:
-                        #         #     frappe.errprint(at.attendance_date)
                 #         # elif at.status == "Half Day":           
                 #         #     hd_record = validate_if_attendance_not_applicable(emp.employee,at.attendance_date)
                 #         #     admin_status = False
@@ -150,7 +144,6 @@ def execute(filters=None):
                 # if emp_status or halfday_status:
                 #     emp_status1 = ','.join(emp_status)
                 #     halfday_status1 = ','.join(halfday_status)
-                #     # frappe.errprint(emp_status1)
                 #     row += [emp_status1,halfday_status1]    
                 #     ab = len(emp_status)
                 #     h_total = len(halfday_status)      
@@ -195,8 +188,7 @@ def validate_if_attendance_not_applicable(employee, attendance_date):
     status = ""
     day = attendance_date
     if is_holiday(employee, attendance_date):
-        # frappe.errprint(attendance_date)
-        # frappe.errprint("holiday")
+       
         return True
     # Check if employee on Leave
     leave_record = frappe.db.sql("""select * from `tabLeave Application`
@@ -227,8 +219,7 @@ def validate_if_attendance_not_applicable(employee, attendance_date):
                 from_date_session = l.from_date_session
                 to_date_session = l.to_date_session
                 session = from_date_session
-            # frappe.errprint(day)
-            # frappe.errprint(session)
+           
             if leave_type == "Privilege Leave":
                 leave = ["PL"]
             elif leave_type == "Casual Leave":
@@ -242,10 +233,8 @@ def validate_if_attendance_not_applicable(employee, attendance_date):
                     session = from_date_session 
                 else:  
                     if half_day_date == day:
-                        # frappe.errprint(day)
                         session = from_date_session
                     elif half_day_date == day:
-                        # frappe.errprint(day)
                         session = to_date_session 
                     else:
                         session = leave
@@ -309,7 +298,6 @@ def validate_if_attendance_not_applicable(employee, attendance_date):
     #         where employee = %s and %s between from_date and to_date
     #         and docstatus = 1 and status='Approved'""", (employee, attendance_date), as_dict=True)
     # if tm_record:
-    #     frappe.errprint("TM")
     #     return True
     tm_record = frappe.db.sql("""select * from `tabTour Application`
                     where employee = %s and %s between from_date and to_date
@@ -346,7 +334,6 @@ def validate_if_attendance_not_applicable(employee, attendance_date):
     # for a in admin_approved_status:
     #     status = a.status
     # if admin_approved_status:
-    #     frappe.errprint(attendance_date)    
     # if status == 'Present' or status == 'WO' or status == 'PH':
     #     return True    
 
@@ -420,12 +407,10 @@ def get_continuous_absents(emp,day):
     preday = postday = day
     while validate_if_attendance_not_applicable(emp,postday):
         postday = add_days(postday,1)
-    # frappe.errprint(postday)    
     next_day = frappe.db.get_value("Attendance",{"attendance_date":postday,"employee":emp},["status"])
     next_day_admin_status = frappe.db.get_value("Attendance",{"attendance_date":postday,"employee":emp},["admin_approved_status"]) 
     while validate_if_attendance_not_applicable(emp,preday):
         preday = add_days(preday,-1)   
-    # frappe.errprint(preday)      
     prev_day = frappe.db.get_value("Attendance",{"attendance_date":preday,"employee":emp},["status"]) 
     prev_day_sh = frappe.db.get_value("Attendance",{"attendance_date":preday,"employee":emp},["second_half_status"])   
     prev_day_admin_status = frappe.db.get_value("Attendance",{"attendance_date":preday,"employee":emp},["admin_approved_status"])

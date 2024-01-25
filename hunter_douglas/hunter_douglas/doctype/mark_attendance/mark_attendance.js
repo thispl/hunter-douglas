@@ -13,6 +13,7 @@ frappe.ui.form.on('Mark Attendance', {
 				"employee_id":frm.doc.employee_id,
 				"employee_name":frm.doc.employee_name,
 				"in_time":frm.doc.in_time,
+				"out_time":frm.doc.out_time,
 				"attendance_date":frm.doc.attendance_date
 			},
 			callback: function(r){

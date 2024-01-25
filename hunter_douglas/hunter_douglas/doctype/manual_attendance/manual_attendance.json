@@ -1,0 +1,89 @@
+{
+ "actions": [],
+ "autoname": "field:employee_name",
+ "creation": "2021-07-15 11:23:57.361472",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "attendance_status",
+  "employee",
+  "employee_name",
+  "column_break_4",
+  "in_time",
+  "out_time",
+  "attendance_date",
+  "company"
+ ],
+ "fields": [
+  {
+   "default": "Pending for Supervisor 1",
+   "fieldname": "attendance_status",
+   "fieldtype": "Select",
+   "label": "Attendance Status",
+   "options": "Pending for Supervisor 1\nPending for Supervisor 2\nPending for Manager\nApproved"
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "label": "Employee",
+   "options": "Employee"
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name",
+   "unique": 1
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "in_time",
+   "fieldtype": "Datetime",
+   "label": "In Time"
+  },
+  {
+   "fieldname": "out_time",
+   "fieldtype": "Datetime",
+   "label": "Out Time"
+  },
+  {
+   "fieldname": "attendance_date",
+   "fieldtype": "Date",
+   "label": "Attendance Date"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Data",
+   "label": "Company"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2021-07-15 16:19:20.991973",
+ "modified_by": "Administrator",
+ "module": "Hunter Douglas",
+ "name": "Manual Attendance",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "quick_entry": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

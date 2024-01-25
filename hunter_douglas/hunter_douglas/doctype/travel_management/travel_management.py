@@ -63,7 +63,7 @@ class TravelManagement(Document):
     #                 LeaveApproverIdentityError)n frappe.get_doc("File",{'attached_to_doctype':self.doctype,'attached_to_name':self.name})
 
     def validate(self):
-        self.validate_approver()	
+        # self.validate_approver()	
         self.validate_tm_overlap()
 
     def validate_approver(self):
@@ -232,7 +232,6 @@ def get_number_of_leave_days(employee, from_date, to_date,from_date_session=None
 @frappe.whitelist()
 def update_tm(tm_id,expense_claim):
     if tm_id:
-        frappe.errprint(tm_id)
         tvm = frappe.get_doc("Travel Management",tm_id)
         if not tvm.expense_claim:
             tvm.update({

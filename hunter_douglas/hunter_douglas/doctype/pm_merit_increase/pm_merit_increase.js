@@ -48,7 +48,8 @@ frappe.ui.form.on('PM Merit Increase', {
                 args:{
                     "doctype": "Performance Management Calibration",
                     filters:{
-                        "employee_code":frm.doc.employee_code1,
+						"employee_code":frm.doc.employee_code1,
+						"pm_year": frm.doc.appraisal_year
                     }
                 },
                 callback: function(r){

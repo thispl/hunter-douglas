@@ -3,6 +3,26 @@
 
 frappe.ui.form.on('Performance Management HOD', {
     validate: function (frm) {
+        var total_amount = 0;
+        var total_amount1 = 0;
+    $.each(frm.doc.key_result_area, function(index, row) {
+        total_amount += row.weightage;
+        console.log(total_amount)
+    });
+    $.each(frm.doc.key_results_area, function(index, row) {
+        total_amount1 += row.weightage;
+        console.log(total_amount)
+    });
+    frm.set_value('total_weightage', total_amount);
+    if (frm.doc.total_weightage > 100 || frm.doc.total_weightage < 100){
+        validated = false
+        frappe.throw(__("Weightage must be equal to 100"))
+    }
+    frm.set_value('total_weightage1', total_amount1);
+    if (frm.doc.total_weightage1 > 100 || frm.doc.total_weightage1 < 100){
+        validated = false
+        frappe.throw(__("Weightage must be equal to 100"))
+    }
         var tot_hod = 0;
         var child_hod = frm.doc.key_result_area;
         $.each(child_hod, function (i, d) {
@@ -106,8 +126,8 @@ frappe.ui.form.on('Performance Management HOD', {
             frm.set_value("avg_pre", "0")
         }
 
-        // d = new Date()
-        // frm.set_value("appraisal_year", String(d.getFullYear() - 1))
+        var d = new Date()
+        frm.set_value("appraisal_year", String(d.getFullYear() - 1))
         if (frm.doc.__islocal) {
             for (var i = 2016; i < d.getFullYear(); i++) {
                 var row = frappe.model.add_child(frm.doc, "PM Sales Target", "sales_target");
@@ -121,10 +141,11 @@ frappe.ui.form.on('Performance Management HOD', {
         var next_year = Number(frm.doc.appraisal_year) + 1
         // $('h6:contains("Goal Setting - Last Year")').text('Goal Setting - ' + String(next_year));
         // $('h6:contains("Goal Setting - Current Year")').text('Goal Setting - ' + app_year);
-        cur_frm.fields_dict['sales_target'].grid.wrapper.find('.grid-add-row').hide();
-        cur_frm.fields_dict['sales_target'].grid.wrapper.find('.grid-remove-rows').hide();
-        cur_frm.fields_dict['competency_assessment1'].grid.wrapper.find('.grid-add-row').hide();
-        cur_frm.fields_dict['competency_assessment1'].grid.wrapper.find('.grid-remove-rows').hide();
+        $(".grid-add-row").hide();
+        // frm.fields_dict['sales_target'].grid.wrapper.find('.grid-add-row').hide();
+        // frm.fields_dict['sales_target'].grid.wrapper.find('.grid-remove-rows').hide();
+        // frm.fields_dict['competency_assessment1'].grid.wrapper.find('.grid-add-row').hide();
+        // frm.fields_dict['competency_assessment1'].grid.wrapper.find('.grid-remove-rows').hide();
 
         // frm.trigger("refresh")
     }

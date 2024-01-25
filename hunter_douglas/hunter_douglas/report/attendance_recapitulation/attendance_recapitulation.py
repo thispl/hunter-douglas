@@ -11,6 +11,7 @@ from dateutil.rrule import *
 from frappe.utils import today,getdate, cint, add_months, date_diff, add_days, nowdate, \
     get_datetime_str, cstr, get_datetime, time_diff, time_diff_in_seconds
 # from hunter_douglas.hunter_douglas.report.monthly_absenteesim.monthly_absenteesim import validate_if_attendance_not_applicable    
+
 def execute(filters=None):
     if not filters:
         filters = {}
@@ -27,6 +28,8 @@ def execute(filters=None):
     from_date = filters.get("from_date")
     to_date = filters.get("to_date")
     for att in attendance:
+        frappe.errprint(att.attendance)
+        frappe.errprint(type(att.attendance_date))
         mr_in_time = 0
         mr_out_time = 0
         total = from_time = late_in = early_out = shift_in_time = dt = 0
@@ -34,8 +37,10 @@ def execute(filters=None):
             if att.name:row = [att.name]
             else:row = ["-"]
 
-            if att.attendance_date:row += [att.attendance_date]
-            else:row = ["-"]
+            if att.attendance_date:
+                row += [att.attendance_date]
+            else:
+                row = ["-"]
 
             if att.employee:row += [att.employee]
             else:row += ["-"] 
@@ -56,9 +61,9 @@ def execute(filters=None):
 
             holiday_date = frappe.db.get_all("Holiday", filters={'holiday_date':att.attendance_date,'parent': holiday_list},fields=['holiday_date','name','is_ph'])
             if att.in_time:
-                frappe.errprint(att.employee)
-                frappe.errprint(att.in_time)
-                dt = datetime.strptime(att.in_time, "%d/%m/%Y %H:%M:%S")
+                # frappe.errprint(att.employee)
+                # frappe.errprint(att.in_time)
+                dt = datetime.strptime(att.in_time, "%Y-%m-%d %H:%M:%S")
                 from_time = dt.time()
                 shift_in_time = frappe.db.get_value("Working Shift",working_shift,"in_time")
                 emp_in_time = timedelta(hours=from_time.hour,minutes=from_time.minute,seconds=from_time.second)
@@ -68,10 +73,11 @@ def execute(filters=None):
                     mr_in_time = get_mr_in(att.employee,att.attendance_date)
                     # row[10] = mr_in_time
                     emp_in_time = emp_in_time - get_mr_in(att.employee,att.attendance_date)
-                if emp_in_time > shift_in_time:
-                    late_in = emp_in_time - shift_in_time
-                else:
-                    late_in = timedelta(seconds=0)  
+                if emp_in_time and shift_in_time:
+                    if emp_in_time > shift_in_time:
+                        late_in = emp_in_time - shift_in_time
+                    else:
+                        late_in = timedelta(seconds=0)  
                     
                 # elif not att.admin_approved_status == 'First Half Present' and not att.admin_approved_status == 'Second Half Present' and late_in and late_in > timedelta(minutes=15) and early_out and early_out > timedelta(minutes=5):
                 #     row += ["AB","AB"]
@@ -81,7 +87,7 @@ def execute(filters=None):
                 #     row += ["PR","AB"]    
 
             if att.out_time:
-                dt = datetime.strptime(att.out_time, "%d/%m/%Y %H:%M:%S")
+                dt = datetime.strptime(att.out_time, "%Y-%m-%d %H:%M:%S")
                 end_time = dt.time()
                 shift_out_time = frappe.db.get_value("Working Shift",working_shift,"out_time")
                 emp_out_time = timedelta(hours=end_time.hour,minutes=end_time.minute,seconds=end_time.second)
@@ -92,10 +98,11 @@ def execute(filters=None):
                     # row[] = mr_out_time
                     emp_out_time = emp_out_time + get_mr_out(att.employee,att.attendance_date)
 
-                if emp_out_time < shift_out_time:
-                    early_out = shift_out_time - emp_out_time
-                else:
-                    early_out = timedelta(seconds=0)   
+                if emp_out_time and shift_out_time:
+                    if emp_out_time < shift_out_time:
+                        early_out = shift_out_time - emp_out_time
+                    else:
+                        early_out = timedelta(seconds=0)   
 
             if att.admin_approved_status == 'First Half Present':
                 late_in = timedelta(seconds=0)  
@@ -207,7 +214,7 @@ def execute(filters=None):
                 
                 elif att.employee in auto_present_list:
                     row += ["PR","PR"]
-                elif att.in_time > att.out_time:
+                elif att.in_time and att.out_time:
                     row += ["PR","PR"]
                 elif not (att.in_time and att.out_time):
                     row += ["AB","AB"] 
@@ -263,7 +270,7 @@ def execute(filters=None):
                         row += ["OD","OD"]      
                     else:    
                         row += [att.first_half_status,att.second_half_status]
-                elif att.in_time > att.out_time:
+                elif att.in_time and att.out_time:
                         row += ["PR","PR"]         
                 else:
                     if late_in and late_in > timedelta(minutes=16) and early_out and early_out > timedelta(minutes=6):
@@ -373,8 +380,8 @@ def execute(filters=None):
             else:row += ["-"]  
 
             # if att.in_time and att.out_time: 
-            #     out_time_f = datetime.strptime(att.out_time, "%d/%m/%Y %H:%M:%S")
-            #     in_time_f = datetime.strptime(att.in_time, "%d/%m/%Y %H:%M:%S") 
+            #     out_time_f = datetime.strptime(att.out_time, "%Y-%m-%d %H:%M:%S")
+            #     in_time_f = datetime.strptime(att.in_time, "%Y-%m-%d %H:%M:%S") 
             #     time_diff = out_time_f - in_time_f   
             #     row += [time_diff]
             # else:row += ["-"]     
@@ -420,7 +427,7 @@ def get_columns():
         _("Employee") + ":Link/Employee:100", 
         _("Employee Name") + ":Data:180",
         _("Shift") + ":Link/Working Shift:90",
-        _("Session1") + ":Data:90",
+        _("Session1") + ":Link/Attendance:90",
          _("Session2") + ":Data:90",
         _("In Time") + ":Data:90",
         _("Out Time") + ":Data:90",
@@ -434,11 +441,12 @@ def get_columns():
     ]
     return columns
 
+@frappe.whitelist()
 def get_attendance(conditions,filters):
     attendance = frappe.db.sql("""select att.working_shift as working_shift, att.admin_approved_status,att.late_in as late_in,att.early_out as early_out,att.first_half_status as first_half_status,att.second_half_status as second_half_status,att.name as name,att.employee_name as employee_name,att.attendance_date as attendance_date,att.work_time as work_time,att.overtime as overtime,att.employee as employee, 
     att.employee_name as employee_name,att.status as status,att.in_time as in_time,att.out_time as out_time from `tabAttendance` att 
     left join `tabEmployee` emp on att.employee = emp.employee  
-    where att.docstatus = 1 %s order by att.attendance_date,att.employee""" % conditions, filters, as_dict=1)
+    where att.docstatus = 0 %s order by att.attendance_date,att.employee""" % conditions, filters, as_dict=1)
     return attendance
 
 def get_conditions(filters):
@@ -455,6 +463,7 @@ def get_conditions(filters):
         if filters.get("user"): conditions += " and att.employee = %s" % employee
     return conditions, filters
 
+@frappe.whitelist()
 def get_autopresent_status(emp,day):
     row = []
     leave_record = get_leaves(emp,day)
@@ -493,7 +502,7 @@ def get_autopresent_status(emp,day):
         row += ["PR","PR"]        
     return row
 
-
+@frappe.whitelist()
 def check_prefix_suffix(emp,day):
     previous_day = next_day = False 
     preday = add_days(day,-1)
@@ -518,12 +527,14 @@ def check_prefix_suffix(emp,day):
         return True 
     return False    
 
+@frappe.whitelist()
 def is_absent(emp,day):
     pre_absent = frappe.get_value("Attendance",{ "attendance_date":day,"employee":emp,"docstatus":1 },['status'])
     
     if pre_absent == 'Absent':
         return True 
 
+@frappe.whitelist()
 def get_leaves(emp,day):
     leave_type = from_date_session = to_date_session = leave = session = ""
     leave_record = frappe.db.sql("""select from_date,to_date,half_day,half_day_date,leave_type,from_date_session,to_date_session from `tabLeave Application`
@@ -572,6 +583,7 @@ def get_leaves(emp,day):
                     session = leave
     return leave,session
 
+@frappe.whitelist()
 def get_tm(emp,day):
     from_date_session = to_date_session = tm = session = ""
     tm_record = frappe.db.sql("""select employee,from_date,to_date,half_day,half_day_date,from_date_session,to_date_session from `tabTour Application`
@@ -605,6 +617,7 @@ def get_tm(emp,day):
 
     return tm,session
 
+@frappe.whitelist()
 def get_od(emp,day):
     from_date_session = to_date_session = od = session = ""
     od_record = frappe.db.sql("""select from_date,to_date,half_day,half_day_date,from_date_session,to_date_session from `tabOn Duty Application`
@@ -637,7 +650,7 @@ def get_od(emp,day):
             od = ["OD"]  
     return od,session
 
-
+@frappe.whitelist()
 def get_coff(emp,day):
     from_date_session = to_date_session = coff = session = ""
     coff_record = frappe.db.sql("""select from_date,to_date,half_day,half_day_date,from_date_session,to_date_session from `tabCompensatory Off Application`
@@ -670,6 +683,7 @@ def get_coff(emp,day):
             coff = ["COFF"]     
     return coff,session
 
+@frappe.whitelist()
 def get_ab_fh(emp,day):
     from_date_session = to_date_session = coff = session = ""
     status = 'AB'
@@ -688,7 +702,7 @@ def get_ab_fh(emp,day):
             return status   
     return status    
     
-
+@frappe.whitelist()
 def get_ab_sh(emp,day):
     from_date_session = to_date_session = coff = session = ""
     status = 'AB'
@@ -713,7 +727,7 @@ def get_ab_sh(emp,day):
     #     return True
     # return False                   
   
-
+@frappe.whitelist()
 def get_continuous_absents(emp,day):
     previous_day = False
     preday = day
@@ -740,6 +754,7 @@ def get_continuous_absents(emp,day):
             return True
     return False    
     
+@frappe.whitelist()
 def get_other_day(emp,day):
     holiday = False  
     if is_holiday(emp,day):
@@ -748,7 +763,7 @@ def get_other_day(emp,day):
     return holiday
         
 
-
+@frappe.whitelist()
 def validate_for_pre_day(employee, attendance_date):
     status = ""
     
@@ -803,6 +818,7 @@ def validate_for_pre_day(employee, attendance_date):
 
     return False
 
+@frappe.whitelist()
 def validate_for_next_day(employee, attendance_date):
     status = ""
     
@@ -857,7 +873,7 @@ def validate_for_next_day(employee, attendance_date):
 
     return False
 
-
+@frappe.whitelist()
 def get_holiday_list_for_employee(employee, raise_exception=True):
     if employee:
         holiday_list, company = frappe.db.get_value("Employee", employee, ["holiday_list", "company"])
@@ -873,6 +889,7 @@ def get_holiday_list_for_employee(employee, raise_exception=True):
 
     return holiday_list
 
+@frappe.whitelist()
 def is_holiday(employee, date=None):
     '''Returns True if given Employee has an holiday on the given date
     :param employee: Employee `name`
@@ -885,6 +902,7 @@ def is_holiday(employee, date=None):
     if holiday_list:
         return frappe.get_all('Holiday List', dict(name=holiday_list, holiday_date=date)) and True or False
 
+@frappe.whitelist()
 def get_mr_out(emp,day):
     from_time = to_time = 0
     dt = datetime.combine(day, datetime.min.time())
@@ -894,11 +912,12 @@ def get_mr_out(emp,day):
         to_time = mr.to_time
     out_time = frappe.get_value("Attendance",{"employee":emp,"attendance_date":day},["out_time"])  
     if out_time:
-        att_out_time = datetime.strptime(out_time,'%d/%m/%Y %H:%M:%S')
+        att_out_time = datetime.strptime(out_time,"%Y-%m-%d %H:%M:%S")
         if from_time:
             if att_out_time >= (from_time + timedelta(minutes=-10)) :
                 return to_time - from_time
 
+@frappe.whitelist()
 def get_mr_in(emp,day):
     from_time = to_time = 0
     dt = datetime.combine(day, datetime.min.time())
@@ -908,7 +927,7 @@ def get_mr_in(emp,day):
         to_time = mr.to_time
     in_time = frappe.get_value("Attendance",{"employee":emp,"attendance_date":day},["in_time"])
     if in_time:    
-        att_in_time = datetime.strptime(in_time,'%d/%m/%Y %H:%M:%S')
+        att_in_time = datetime.strptime(in_time,"%Y-%m-%d %H:%M:%S")
         if from_time:
             if att_in_time >= (from_time + timedelta(minutes=-10)):
                 return to_time - from_time

@@ -16,7 +16,7 @@ frappe.query_reports["Late - IN Register"] = {
 			"fieldname":"year",
 			"label": __("Year"),
 			"fieldtype": "Select",
-			// "options": "2018\n2019",
+			"options": "2018\n2023",
 			"reqd": 1
 		},
 		{

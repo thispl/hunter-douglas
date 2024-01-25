@@ -120,14 +120,12 @@ def get_number_of_required_hours(employee, from_date, to_date,from_date_session=
             number_of_days = flt(date_dif) - 0.5
         if from_date_session == "Second Half" and to_date_session == "First Half":
             number_of_days = flt(date_dif) - 1
-    frappe.errprint(current_balance)
     cur_hour = current_balance.split(":")
     cur_balance = timedelta(hours=cint(cur_hour[0]),minutes=cint(cur_hour[1]))
 
     required_balance = timedelta(hours =(number_of_days * 8))
     reqd_balance =  "%02d:00:00" % (number_of_days * 8)
-    frappe.errprint(cur_balance.total_seconds())
-    frappe.errprint(required_balance.total_seconds())
+   
     if cur_balance.total_seconds() < required_balance.total_seconds():
         return "less"
         # frappe.throw("Balance is Less for the Applied Days") 
@@ -142,14 +140,11 @@ def get_number_of_required_hours(employee, from_date, to_date,from_date_session=
 #     if coff_id:
 #         coff = frappe.get_doc("Comp Off Details",coff_id)
         # child = coff.comp_off_calculation_details
-        # frappe.errprint(coff.total_hours)
         # h = t
-        # frappe.errprint(h)
         # t1 = total_number_of_days.total_seconds()  
         # minutes = t1 // 60
         # hours = minutes // 60
         # t3 =  "%02d:%02d:%02d" % (hours, minutes % 60, t1 % 60)
-        # frappe.errprint(t3)
 
 
 
@@ -210,11 +205,7 @@ def format_seconds_to_hhmmss(seconds):
     # })   
     # coff_details.save(ignore_permissions=True)
     # frappe.db.commit()
-    # frappe.errprint(avl_hours)
     # diff = avl_hours - req_bal
-    # frappe.errprint(total)
-    # frappe.errprint(req_bal)
-    # frappe.errprint(diff)
         # modified_req_bal = req_bal.split(":")
         # hours =cint(modified_req_bal[0])
         # minutes=cint(modified_req_bal[1])
@@ -223,5 +214,3 @@ def format_seconds_to_hhmmss(seconds):
         # minutes1=cint(modified_hour_bal[1])
         # hour_diff = hours - hours1
         # minutes_diff = minutes - minutes1
-        # frappe.errprint(hour_diff)
-        # frappe.errprint(minutes_diff)

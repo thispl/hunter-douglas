@@ -23,9 +23,7 @@ def execute(filters=None):
     if month == 0:
         month = 12
         year = cint(filters.year) - 1
-    # frappe.errprint(cint(filters.year))
-    # frappe.errprint(month)
-    # frappe.errprint(filters.year)    
+     
     tdm = monthrange(cint(filters.year), month)[1]
     days = range(25,tdm+1) + range(1,25)
     employees = get_employees(filters)
@@ -46,7 +44,6 @@ def execute(filters=None):
             #         hd = frappe.db.get_all("Holiday", filters={'holiday_date':at.attendance_date,'parent': holiday_list},fields=['name','holiday_date'])                   
             #         if not hd:
             #             leave_record =  frappe.db.sql("""select name,employee from `tabLeave Application`  where status = "Approved" and employee = %s and %s between from_date and to_date and docstatus = 1""" % (emp.employee,at.attendance_date) ,as_dict=1)      
-            #             frappe.errprint(leave_record)
             #             if not leave_record:
             #                 emp_status.append(at.attendance_date.strftime("%d"))
             # half_day_attendance = frappe.db.sql(

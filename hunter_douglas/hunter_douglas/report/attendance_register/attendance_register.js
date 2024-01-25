@@ -1,84 +1,124 @@
-// Copyright (c) 2016, VHRS and contributors
+// Copyright (c) 2022, Frappe Technologies Pvt. Ltd. and contributors
 // For license information, please see license.txt
 /* eslint-disable */
-
-frappe.query_reports["Attendance Register"] = {
-	"filters": [
-		{
-			"fieldname":"month",
-			"label": __("Month"),
-			"fieldtype": "Select",
-			"options": "Jan\nFeb\nMar\nApr\nMay\nJun\nJul\nAug\nSep\nOct\nNov\nDec",
-			"default": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov",
-				"Dec"][frappe.datetime.str_to_obj(frappe.datetime.get_today()).getMonth()],
+if(frappe.session.user = 'hr.hdi@hunterdouglas.asia'){
+	frappe.query_reports["Attendance Register"] = {
+		"filters": [
+			{
+				"fieldname": "from_date",
+				"label": __("From Date"),
+				"fieldtype": "Date",
+				"reqd": 1
+			},
+			{
+				"fieldname": "to_date",
+				"label": __("To Date"),
+				"fieldtype": "Date",
+				"reqd": 1
+			},
+			{
+				"fieldname": "employee",
+				"label": __("Employee"),
+				"fieldtype": "Link",
+				"options": "Employee",
+			},
+			{
+				"fieldname": "department",
+				"label": __("Department"),
+				"fieldtype": "Link",
+				"options": "Department",
+			},
+			{
+				"fieldname": "location_name",
+				"label": __("Location"),
+				"fieldtype": "Link",
+				"options": "Location",
+		
+			},	
+		],
+		onload: function (report) {
+			var to_date = frappe.query_report.get_filter('to_date');
+			to_date.refresh();
+			to_date.set_input(frappe.datetime.add_days(frappe.datetime.month_start(),30))
+			var from_date = frappe.query_report.get_filter('from_date');
+			from_date.refresh();
+			var d = frappe.datetime.add_months(frappe.datetime.month_start())
+			from_date.set_input(frappe.datetime.add_days(d))
 		},
-		{
-			"fieldname":"year",
-			"label": __("Year"),
-			"fieldtype": "Select",
-			// "options": "2018\n2019",
-			"reqd": 1
+	};
+}
+else if(frappe.session.user = 'hr.hdi@hunterdouglas.in'){
+	frappe.query_reports["Attendance Register"] = {
+		"filters": [
+			{
+				"fieldname": "from_date",
+				"label": __("From Date"),
+				"fieldtype": "Date",
+				"reqd": 1
+			},
+			{
+				"fieldname": "to_date",
+				"label": __("To Date"),
+				"fieldtype": "Date",
+				"reqd": 1
+			},
+			{
+				"fieldname": "employee",
+				"label": __("Employee"),
+				"fieldtype": "Link",
+				"options": "Employee",
+			},
+			{
+				"fieldname": "department",
+				"label": __("Department"),
+				"fieldtype": "Link",
+				"options": "Department",
+			},
+			{
+				"fieldname": "location_name",
+				"label": __("Location"),
+				"fieldtype": "Link",
+				"options": "Location",
+		
+			},	
+		],
+		onload: function (report) {
+			var to_date = frappe.query_report.get_filter('to_date');
+			to_date.refresh();
+			to_date.set_input(frappe.datetime.add_days(frappe.datetime.month_start(),30))
+			var from_date = frappe.query_report.get_filter('from_date');
+			from_date.refresh();
+			var d = frappe.datetime.add_months(frappe.datetime.month_start())
+			from_date.set_input(frappe.datetime.add_days(d))
 		},
-		{
-			"fieldname":"employee",
-			"label": __("Employee"),
-			"fieldtype": "Link",
-			"options":"Employee"
+	};
+}
+else{
+	frappe.query_reports["Attendance Register"] = {
+		"filters": [
+			{
+				"fieldname": "from_date",
+				"label": __("From Date"),
+				"fieldtype": "Date",
+				"reqd": 1,
+				"read_only":1,
+			},
+			{
+				"fieldname": "to_date",
+				"label": __("To Date"),
+				"fieldtype": "Date",
+				"reqd": 1,
+				"read_only":1,
+			}
+		],
+		onload: function (report) {
+			var to_date = frappe.query_report.get_filter('to_date');
+			to_date.refresh();
+			to_date.set_input(frappe.datetime.add_days(frappe.datetime.month_start(),30))
+			var from_date = frappe.query_report.get_filter('from_date');
+			from_date.refresh();
+			var d = frappe.datetime.add_months(frappe.datetime.month_start())
+			from_date.set_input(frappe.datetime.add_days(d))
 		},
-		{
-			"fieldname":"department",
-			"label": __("Department"),
-			"fieldtype": "Link",
-			"options":"Department"
-		},
-		{
-			"fieldname":"location",
-			"label": __("Location"),
-			"fieldtype": "Link",
-			"options":"Location"
-		},
-	],
-	
-	"formatter": function (row, cell, value, columnDef, dataContext, default_formatter) {
-		value = default_formatter(row, cell, value, columnDef, dataContext);
-		for(i=0;i<32;i++)
-		{
-		if (columnDef.id == i) {
-			if (dataContext[i] === "AB") {
-				value = "<span style='color:red!important;font-weight:bold'>" + value + "</span>";
-			}
-			if (dataContext[i] === "PR") {
-				value = "<span style='color:green!important;font-weight:bold'>" + value + "</span>";
-			}
-			if (dataContext[i] === "PL") {
-				value = "<span style='color:blue!important;font-weight:bold'>" + value + "</span>";
-			}
-		}
-
-		if (columnDef.id == i) {
-			if (dataContext[i] === "AB") {
-				value = "<span style='color:red!important;font-weight:bold'>" + value + "</span>";
-			}
-			if (dataContext[i] === "PR") {
-				value = "<span style='color:green!important;font-weight:bold'>" + value + "</span>";
-			}
-			if (dataContext[i] === "CL" || dataContext["Session2"] === "PL" || dataContext["Session2"] === "SL") {
-				value = "<span style='color:blue!important;font-weight:bold'>" + value + "</span>";
-			}
-		}
-	}
-		return value;
-	},
-	"onload": function() {
-		return  frappe.call({
-			method: "erpnext.hr.report.monthly_attendance_sheet.monthly_attendance_sheet.get_attendance_years",
-			callback: function(r) {
-				var year_filter = frappe.query_report_filters_by_name.year;
-				year_filter.df.options = r.message;
-				year_filter.df.default = r.message.split("\n")[0];
-				year_filter.refresh();
-				year_filter.set_input(year_filter.df.default);
-			}
-		});
 	}
 }

@@ -1,0 +1,28 @@
+{
+ "add_total_row": 0,
+ "columns": [],
+ "creation": "2021-06-10 17:06:59.822862",
+ "disable_prepared_report": 0,
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [],
+ "idx": 0,
+ "is_standard": "Yes",
+ "json": "{\"filters\":[],\"fields\":[[\"name\",\"Employee Activity\"],[\"employee_name\",\"Employee Activity\"],[\"employee_code\",\"Employee Activity\"],[\"department\",\"Employee Activity\"],[\"designation\",\"Employee Activity\"],[\"division\",\"Employee Activity\"],[\"idx\",\"Activity Table\"],[\"date\",\"Activity Table\"],[\"day\",\"Activity Table\"],[\"worked_from\",\"Activity Table\"],[\"details_of_works\",\"Activity Table\"]],\"order_by\":\"`tabEmployee Activity`.`modified` desc\",\"page_length\":20,\"column_widths\":{\"name\":120,\"employee_name\":120,\"employee_code\":120,\"department\":120,\"designation\":120,\"division\":120,\"Activity Table:idx\":120,\"Activity Table:date\":120,\"Activity Table:day\":120,\"Activity Table:worked_from\":120,\"Activity Table:details_of_works\":120},\"group_by\":null}",
+ "letter_head": "PM Calibration",
+ "modified": "2021-06-10 17:18:20.816107",
+ "modified_by": "Administrator",
+ "module": "Hunter Douglas",
+ "name": "Employee Activity",
+ "owner": "Administrator",
+ "prepared_report": 0,
+ "ref_doctype": "Employee Activity",
+ "report_name": "Employee Activity",
+ "report_type": "Report Builder",
+ "roles": [
+  {
+   "role": "System Manager"
+  }
+ ]
+}

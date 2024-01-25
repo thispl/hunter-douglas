@@ -208,3 +208,7 @@ def mark_exp_paid(names,paid_date):
             frappe.db.commit()
 
 
+@frappe.whitelist()
+def rename_employee():
+    emp = frappe.rename_doc("Employee", "1117290", "1332", force=True)
+    print(emp)

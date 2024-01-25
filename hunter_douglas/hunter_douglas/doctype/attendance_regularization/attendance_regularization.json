@@ -1,0 +1,165 @@
+{
+ "actions": [],
+ "autoname": "ATTR.#####",
+ "creation": "2023-02-18 13:14:45.566895",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "employee",
+  "department",
+  "designation",
+  "column_break_4",
+  "attendance_date",
+  "attendance_details_section",
+  "attendance_marked",
+  "status",
+  "first_in_time",
+  "last_out_time",
+  "total_working_hours",
+  "overtime_hours",
+  "column_break_13",
+  "corrected_status",
+  "corrected_in_time",
+  "corrected_out_time",
+  "corrected_total_working_hours",
+  "corrected_overtime_hours",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "label": "Employee",
+   "options": "Employee"
+  },
+  {
+   "fetch_from": "employee.department",
+   "fieldname": "department",
+   "fieldtype": "Data",
+   "label": "Department"
+  },
+  {
+   "fetch_from": "employee.designation",
+   "fieldname": "designation",
+   "fieldtype": "Data",
+   "label": "Designation"
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "attendance_date",
+   "fieldtype": "Date",
+   "label": "Attendance Date"
+  },
+  {
+   "depends_on": "eval:doc.attendance_date",
+   "fieldname": "attendance_details_section",
+   "fieldtype": "Section Break",
+   "label": "Attendance Details"
+  },
+  {
+   "fieldname": "attendance_marked",
+   "fieldtype": "Link",
+   "label": "Attendance Marked",
+   "options": "Attendance",
+   "read_only": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Data",
+   "label": "Status",
+   "read_only": 1
+  },
+  {
+   "fieldname": "first_in_time",
+   "fieldtype": "Data",
+   "label": "First In Time",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_out_time",
+   "fieldtype": "Data",
+   "label": "Last Out Time",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_working_hours",
+   "fieldtype": "Float",
+   "label": "Total Working Hours",
+   "read_only": 1
+  },
+  {
+   "fieldname": "overtime_hours",
+   "fieldtype": "Float",
+   "label": "Overtime Hours",
+   "read_only": 1
+  },
+  {
+   "fieldname": "corrected_status",
+   "fieldtype": "Select",
+   "label": "Corrected Status",
+   "options": "\nPresent\nAbsent\nOn Leave\nHalf Day\nOn Duty"
+  },
+  {
+   "fieldname": "corrected_in_time",
+   "fieldtype": "Datetime",
+   "label": "Corrected in Time"
+  },
+  {
+   "fieldname": "corrected_out_time",
+   "fieldtype": "Datetime",
+   "label": "Corrected Out Time"
+  },
+  {
+   "fieldname": "corrected_total_working_hours",
+   "fieldtype": "Float",
+   "label": "Corrected Total Working Hours"
+  },
+  {
+   "fieldname": "corrected_overtime_hours",
+   "fieldtype": "Float",
+   "label": "Corrected Overtime Hours"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Attendance Regularization",
+   "print_hide": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_13",
+   "fieldtype": "Column Break"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2023-02-18 14:08:28.071570",
+ "modified_by": "Administrator",
+ "module": "Hunter Douglas",
+ "name": "Attendance Regularization",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

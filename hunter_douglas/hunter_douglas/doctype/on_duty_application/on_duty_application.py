@@ -20,8 +20,8 @@ class OnDutyApplication(Document):
     def on_submit(self):
         if self.status == "Applied":
             frappe.throw(_("Only Applications with status 'Approved' and 'Rejected' can be submitted"))
-        # if self.status == "Approved":
-        #     update_attendance_by_app(self.employee,self.from_date,self.to_date,self.from_date_session,self.to_date_session,"OD")
+        if self.status == "Approved":
+            update_attendance_by_app(self.employee,self.from_date,self.to_date,self.from_date_session,self.to_date_session,"OD")
 
     def validate(self):
         self.validate_approver()
@@ -47,6 +47,10 @@ class OnDutyApplication(Document):
             elif self.docstatus==1 and len(approvers) and self.approver != frappe.session.user:
                 frappe.throw(_("Only the selected Approver can submit this Application"),
                     LeaveApproverIdentityError)
+            else:
+                update_attendance_by_app(self.employee,self.from_date,self.to_date,self.from_date_session,self.to_date_session,"OD")
+
+
     
     def validate_od_overlap(self):
         if not self.name:
@@ -216,11 +220,10 @@ def check_attendance(employee, from_date, to_date):
 @frappe.whitelist()
 def validate_cutoff(from_date):
     cur_mon = datetime.strptime(today(), "%Y-%m-%d").strftime("%B")
-    frappe.errprint(cur_mon)
     c = frappe.get_value("Application Cut Off Date",{'month':cur_mon},['cut_off_date','from_date','to_date'])
     curday = date.today()
     fromdate = datetime.strptime(str(from_date),"%Y-%m-%d").date()
     if fromdate < c[1]:
         return 'Expired'
-    if fromdate > c[1] and fromdate < c[2]:
-        frappe.errprint('true')
+    # if fromdate > c[1] and fromdate < c[2]:
+    #     frappe.errprint(fromdate > c[1] and fromdate < c[2])

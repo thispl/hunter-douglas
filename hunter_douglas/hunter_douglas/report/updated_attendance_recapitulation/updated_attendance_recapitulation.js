@@ -56,7 +56,7 @@ frappe.query_reports["Updated Attendance Recapitulation"] = {
 
 	],
 
-	"formatter": function (row, cell, value, columnDef, dataContext, default_formatter) {
+	"Formatter": function (row, cell, value, columnDef, dataContext, default_formatter) {
 
 		if (columnDef.id == "Name" && frappe.user.has_role("System Manager")) {
 			value = dataContext.Name

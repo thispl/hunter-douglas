@@ -3,6 +3,27 @@
 
 frappe.ui.form.on('Performance Management Reviewer', {
     validate:function(frm){
+        var total_amount = 0;
+        var total_amount1 = 0;
+    $.each(frm.doc.key_result_area, function(index, row) {
+        total_amount += row.weightage;
+        console.log(total_amount)
+    });
+    $.each(frm.doc.key_results_area, function(index, row) {
+        total_amount1 += row.weightage;
+        console.log(total_amount)
+    });
+    frm.set_value('total_weightage', total_amount);
+    if (frm.doc.total_weightage > 100 || frm.doc.total_weightage < 100){
+        validated = false
+        frappe.throw(__("Weightage must be equal to 100"))
+    }
+    frm.set_value('total_weightage1', total_amount1);
+    if (frm.doc.total_weightage1 > 100 || frm.doc.total_weightage1 < 100){
+        validated = false
+        frappe.throw(__("Weightage must be equal to 100"))
+    }
+        // frm.trigger("calculate_avg")
         // if (frm.doc.workflow_state == 'Draft') {
         //     var child_r = frm.doc.competency_assessment1;
         //     var len2 = child_r.length;
@@ -41,7 +62,7 @@ frappe.ui.form.on('Performance Management Reviewer', {
             tot_hod += parseInt(d.hod)
         })
         if (parseInt(tot_hod) > 1) {
-        var avg_hod = (tot_hod/child_hod.length).toFixed(1);
+        var avg_hod = (tot_hod/child_hod.length).toFixed(2);
         frm.set_value("avg_hod",avg_hod)
         }
         else{
@@ -53,8 +74,10 @@ frappe.ui.form.on('Performance Management Reviewer', {
             tot_rev += parseInt(d.reviewer)
         })
         if (parseInt(tot_rev) > 1) {
-        var avg_rev = (tot_rev/child_rev.length).toFixed(1);
-        frm.set_value("average_score",avg_rev)
+            console.log(tot_rev)
+        var avg_rev = (tot_rev / child_rev.length).toFixed(1);
+          frm.set_value("average_score",avg_rev)
+
         }
         else{
             frm.set_value("average_score","0")
@@ -179,8 +202,10 @@ frappe.ui.form.on('Performance Management Reviewer', {
         }
     },
     calculate_avg: function(frm){
-        com_av_total = 0.0
-		goal_av_total = 0.0
+        var com_av_total = 0.0
+        var goal_av_total = 0.0
+        var final_com_av_total = 0.0
+        var final_goal_av_total = 0.0
 		$.each(frm.doc.competency_assessment1 || [], function(i, v) {
 			if (v.reviewer) {
 				var total = ((v.reviewer * 10)/ 100)

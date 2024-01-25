@@ -1,122 +1,102 @@
-# Copyright (c) 2013, VHRS and contributors
+# Copyright (c) 2013, teampro and contributors
 # For license information, please see license.txt
 
 from __future__ import unicode_literals
+from six import string_types
 import frappe
-from frappe import _
-import math
-from datetime import datetime,timedelta
-from frappe.utils import getdate, cint, add_months, date_diff, add_days, nowdate, \
-    get_datetime_str, cstr, get_datetime, time_diff, time_diff_in_seconds
-from hunter_douglas.utils import validate_if_attendance_not_applicable
+from datetime import datetime
+from frappe.utils import (getdate, cint, add_months, date_diff, add_days,
+	nowdate, get_datetime_str, cstr, get_datetime, now_datetime, format_datetime,format_date)
+from calendar import monthrange
+from frappe import _, msgprint
+from frappe.utils import flt
+from frappe.utils import cstr, cint, getdate
+from itertools import count
+import pandas as pd
+import datetime as dt
+
 
 def execute(filters=None):
-    if not filters:
-        filters = {}
-
-    columns = get_columns()
-
-    data = []
-    row = []
-    conditions, filters = get_conditions(filters)
-    total = from_time = early_out = shift_in_time = 0
-    attendance = get_attendance(conditions,filters)
-    from_date = filters.get("from_date")
-    to_date = filters.get("to_date")
-    for att in attendance:
-        skip_attendance = validate_if_attendance_not_applicable(att.employee,att.attendance_date)
-        if not skip_attendance:
-            working_shift = frappe.db.get_value("Employee", {'employee':att.employee},['working_shift']) 
-            if att.in_time:
-                dt = datetime.strptime(att.in_time, "%d/%m/%Y %H:%M:%S")
-                from_time = dt.time()
-                shift_in_time = frappe.db.get_value("Working Shift",working_shift,"in_time")
-                new_shift_in_time = shift_in_time + timedelta(minutes = 15)
-                emp_in_time = timedelta(hours=from_time.hour,minutes=from_time.minute,seconds=from_time.second)            
-                if emp_in_time > new_shift_in_time:
-                    
-                    late_in = emp_in_time - new_shift_in_time
-                    late_in = late_in + timedelta(minutes = 15)
-                else:
-                    late_in = ''    
-            #     row += [from_time.isoformat()]
-            # else:row += ["-"]
-            if att.out_time:
-                dt = datetime.strptime(att.out_time, "%d/%m/%Y %H:%M:%S")
-                end_time = dt.time()
-                shift_out_time = frappe.db.get_value("Working Shift",working_shift,"out_time")
-                emp_out_time = timedelta(hours=end_time.hour,minutes=end_time.minute,seconds=end_time.second)
-                if emp_out_time < shift_out_time:
-                    early_out = shift_out_time - emp_out_time
-                else:
-                    early_out = ''    
-            #     row += [end_time.isoformat()]
-            # else:row += ["-"]
-
-            if early_out:
-                if att.name:row = [att.name]
-                else:row = ["-"]
-
-                if att.attendance_date:row += [att.attendance_date]
-                else:row = ["-"]
-
-                if att.employee:row += [att.employee]
-                else:row += ["-"] 
-                
-                if att.employee_name:row += [att.employee_name]
-                else:row += ["-"]
-
-                if att.department:row += [att.department]
-                else:row += ["-"]
-
-                if att.business_unit:row += [att.business_unit]
-                else:row += ["-"]
-
-                if att.location:row += [att.location]
-                else:row += ["-"]
-
-                if working_shift:row += [working_shift]
-                else:row += ["-"]
-
-                if att.in_time:
-                    row += [from_time.isoformat()]
-                else:row += ["-"]
-
-                if att.out_time:
-                    row += [end_time.isoformat()]
-                else:row += ["-"]
-
-                row += [early_out]
-                data.append(row)
-
-    return columns, data
+	data = []
+	columns = get_columns()
+	attendance = get_attendance(filters)
+	for att in attendance:
+		data.append(att)
+	return columns, data
 
 def get_columns():
-    columns = [
-        _("Name") + ":Link/Attendance:100",
-        _("Attendance Date") + ":Date:100",
-        _("Employee") + ":Link/Employee:100", 
-        _("Employee Name") + ":Data:180",
-        _("Department") + ":Data:90",
-        _("Business Unit") + ":Data:90",
-        _("Location") + ":Data:90",
-        _("Shift In Time") + ":Data:90",
-        _("In Time") + ":Data:90",
-        _("Out Time") + ":Data:90",
-        _("Early By") + ":Data:90",
-    ]
-    return columns
+	columns = [
+		_("Employee") + ":Data:120",
+		_("Employee Name") + ":Data:120",
+		_("Department") + ":Data:120",
+		_("Attendance Date") + ":Data:120",
+		_("Shift") + ":Data:120",
+		_("Shift End Time") + ":Data:100",
+		_("Out Time") + ":Data:120",
+		_("Early Out Hours") + ":Data:100"
+	]
+	return columns
 
-def get_attendance(conditions,filters):
-    attendance = frappe.db.sql("""select att.status as status,att.location  as location, att.name as name,att.department as department,att.business_unit as business_unit,att.attendance_date as attendance_date,att.work_time as work_time,att.employee as employee, att.employee_name as employee_name,att.status as status,att.in_time as in_time,att.out_time as out_time from `tabAttendance` att 
-    where att.out_time > 0 %s order by att.attendance_date """ % conditions, filters, as_dict=1)
-    return attendance
+def get_attendance(filters):
+	data = []
+	# if filters.employee:
+	#     attendance = frappe.get_all('Attendance',{'status':'Present','attendance_date':('between',(filters.from_date,filters.to_date)),'employee':filters.employee},['*'])
+	#     for att in attendance:
+	#         if att.working_shift and att.out_time:
+	#             shift_time = frappe.get_value("Working Shift",{'name':att.working_shift},["out_time"])
+	#             get_time = datetime.strptime(str(shift_time),'%H:%M:%S').strftime('%H:%M:%S')
+	#             shift_end_time = dt.datetime.strptime(str(get_time),'%Y-%m-%d %H:%M:%S')
+	#             out_time = dt.datetime.combine(att.attendance_date,shift_end_time.time())
+	#             st_time = out_time.strftime('%Y-%m-%d %H:%M:%S')
+	#             at_time = att.out_time.strftime('%Y-%m-%d %H:%M:%S')
+	#             if att.out_time < out_time:
+	#                         early_time = out_time - att.out_time
+	#                         row = [att.employee,att.employee_name,att.department,format_date(att.attendance_date),att.working_shift,st_time,at_time,early_time]
+	#                         data.append(row)
+	# elif filters.department:
+	#     attendance = frappe.get_all('Attendance',{'status':'Present','attendance_date':('between',(filters.from_date,filters.to_date)),'department':filters.department},['*'])
+	#     for att in attendance:
+	#         if att.shift and att.out_time:
+	#             shift_time = frappe.get_value("Working Shift",{'name':att.shift},["out_time"])
+	#             get_time = datetime.strptime(str(shift_time),'%Y-%m-%d %H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
+	#             shift_end_time = dt.datetime.strptime(str(get_time),'%Y-%m-%d %H:%M:%S')
+	#             out_time = dt.datetime.combine(att.attendance_date,shift_end_time.time())
+	#             st_time = out_time.strftime('%Y-%m-%d %H:%M:%S')
+	#             at_time = att.out_time.strftime('%Y-%m-%d %H:%M:%S')
+	#             if att.out_time < out_time:
+	#                         early_time = out_time - att.out_time
+	#                         row = [att.employee,att.employee_name,att.department,format_date(att.attendance_date),att.working_shift,st_time,at_time,early_time]
+	#                         data.append(row)
+	# else:
+	# attendance = frappe.get_all('Attendance',{'attendance_date':('between',(filters.from_date,filters.to_date))},['*'])
+	# late_by = ''
+	# for att in attendance:
+	#     if att.shift and att.out_time:
+	#         shift_end_time = frappe.db.get_value("Shift Type",att.shift,"end_time")
+	#         shift_end = pd.to_datetime(str(shift_end_time)).time()
+	#         out_time = dt.datetime.strptime(att.out_time,'%Y-%m-%d %H:%M:%S')
+	#         if out_time.time() < shift_end:
+	#             dt.datetime_combine = datetime.combine(att.attendance_date,shift_end)
+	#             total_hours = dt.datetime_combine - att.out_time
+	#             row = [att.employee,att.employee_name,format_date(att.attendance_date),att.shift,shift_end_time,att.out_time,total_hours]
+	#             data.append(row)
+	# return data
 
-def get_conditions(filters):
-    conditions = ""
-    if filters.get("from_date"): conditions += "and att.attendance_date >= %(from_date)s"
-    if filters.get("to_date"): conditions += " and att.attendance_date <= %(to_date)s"
-    if filters.get("location"): conditions += " and att.location = %(location)s"  
-    if filters.get("business_unit"): conditions += " and att.business_unit = %(business_unit)s"
-   
-    return conditions, filters
+
+	attendance = frappe.get_all('Attendance',{'attendance_date':('between',(filters.from_date,filters.to_date))},['*'])
+	for att in attendance:
+		if att.shift and att.out_time:
+			out_time = dt.datetime.strptime(str(att.out_time),'%Y-%m-%d %H:%M:%S')
+			shift_time = frappe.get_value("Shift Type",{'name':att.shift},["end_time"])
+			get_time = datetime.strptime(str(shift_ti M+ me),'%H:%M:%S').strftime('%H:%M:%S')
+			shift_end_time = dt.datetime.strptime(str(get_time),"%H:%M:%S")
+			end_time = dt.datetime.combine(att.attendance_date,shift_end_time.time())
+			st_time = end_time.strftime('%H:%M')
+			at_time = out_time.strftime('%H:%M')
+			if out_time < end_time:
+				early_time = end_time - out_time
+
+				row = [att.employee,att.employee_name,att.department,format_date(att.attendance_date),att.shift,
+				st_time,at_time,early_time]
+				data.append(row)
+	return data

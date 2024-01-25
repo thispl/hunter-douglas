@@ -314,7 +314,6 @@ def get_continuous_absents(emp,day):
     while validate_if_attendance_not_applicable(emp,preday):
         preday = add_days(preday,-1)   
     prev_day = frappe.db.get_value("Attendance",{"attendance_date":preday,"employee":emp},["status"])       
-    # frappe.errprint(preday)    
     if prev_day == 'Absent' and next_day == 'Absent':
         return True
     return False    

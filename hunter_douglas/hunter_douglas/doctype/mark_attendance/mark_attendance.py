@@ -12,7 +12,7 @@ from frappe.model.document import Document
 class MarkAttendance(Document):
     pass
 @frappe.whitelist()
-def create_self_attendance(employee_id,employee_name,in_time,attendance_date):
+def create_self_attendance(employee_id,employee_name,in_time,attendance_date,out_time):
     sa=frappe.new_doc("Attendance")
     sa.employee=employee_id
     sa.employee_name=employee_name
@@ -20,14 +20,15 @@ def create_self_attendance(employee_id,employee_name,in_time,attendance_date):
     sa.in_time=in_time
     sa.is_self_attendance = 1
     sa.status = "Present"
-    # sa.out_time= "04:45:00"
+    sa.shift ="A"
+    sa.out_time=out_time
     sa.save(ignore_permissions=True)
     frappe.db.commit()
     return sa
-def auto_outtime():
-    today=datetime.today()
-    d=frappe.db.sql("""select name, employee_name,employee,out_time,attendance_date from `tabAttendance` where is_self_attendance = 1""",as_dict=True)
-    for i in d:
-        date=today.date()
-        if(i.attendance_date==date):
-            frappe.db.set_value('Attendance',i.name,'out_time',"04:45:00")
+# def auto_outtime():
+#     today=datetime.today()
+#     d=frappe.db.sql("""select name, employee_name,employee,out_time,attendance_date from `tabAttendance` where is_self_attendance = 1""",as_dict=True)
+#     for i in d:
+#         date=today.date()
+#         if(i.attendance_date==date):
+#             frappe.db.set_value('Attendance',i.name,'out_time',"05:30:00")

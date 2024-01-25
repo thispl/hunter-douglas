@@ -139,7 +139,7 @@ def fetch_revised():
                                 early_out = nd.early_out
                                 work_time = timedelta(minutes=cint(nd.work_time))
                                 over_time = timedelta(minutes=cint(nd.over_time))
-                                # frappe.errprint(type(timedelta(minutes=work_time)))
+                              
                                 # if status = ""
                                 # if work_time >= timedelta(hours=4):
                                 #     if work_time < timedelta(hours=7,minutes=45):
@@ -193,7 +193,7 @@ def fetch_revised():
 #     in_time = "23/02/2019 08:54:50"
 #     out_time = "23/02/2019 15:37:30"
 #     d = get_att_data(employee,attendance_date,working_shift,in_time,out_time)
-#     frappe.errprint(d)
+
 
 
 def get_att_data(employee,attendance_date,working_shift,in_time,out_time,status):

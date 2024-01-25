@@ -23,42 +23,19 @@ frappe.listview_settings['On Duty Application'] = {
 	// },
 	
 	
-    refresh:function(me){
+    onload:function(me){
 		me.page.sidebar.find(".list-link[data-view='Kanban']").addClass("hide");
 		me.page.sidebar.find(".list-link[data-view='Tree']").addClass("hide");
-		me.page.sidebar.find(".assigned-to-me a").addClass("hide");
+        me.page.sidebar.find(".assigned-to-me a").addClass("hide");
+        if(!frappe.user.has_role('System Manager')){
+		$('*[data-fieldname="employee"]').find('.input-with-feedback').attr('readonly',true);
 		frappe.model.get_value('Employee', { 'user_id': frappe.session.user }, 'employee_number',
             function (data) {
                 if (data) {
-                    me.filter_list.add_filter(me.doctype, "employee", '=', data.employee_number);
-                    me.run()
+					me.filter_area.add([[me.doctype, "employee", '=', data.employee_number]]);
                 }
             })
-		frappe.call({
-			"method": "frappe.client.get_list",
-			args:{
-				doctype: "Employee",
-				filters: {"user_id": frappe.session.user}
-			},
-			callback: function(r){
-				n = r.message[0]
-				frappe.call({
-					"method": "frappe.client.get",
-					args:{
-						doctype: "Employee",
-						name: n.name
-					},
-					callback: function(r){
-						emp = r.message.employee_number;
-						if (!frappe.route_options) {
-							frappe.route_options = {
-								"employee": ["=", emp]
-							};
-					    }
-					}
-				})
-			}
-		})
-	}
+    }
+}
     
 };

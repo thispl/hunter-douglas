@@ -1,10 +1,17 @@
 frappe.listview_settings['Performance Management HOD'] = {
-    // onload:function(frm){
-    //     frm.trigger("refresh")
-    // },
+    onload:function(me){
+        if(!frappe.user.has_role("System Manager")){
+            var d  = new Date()
+            var apy = d.getFullYear() - 1
+            frappe.route_options = {
+                "appraisal_year": ["=", apy],
+                "hod": ["=", frappe.session.user]
+            };
+        }
+    },
     refresh: function (me) {
         if(!frappe.user.has_role("System Manager")){
-            d = new Date()
+            var d = new Date()
             var apy = d.getFullYear() - 1
             frappe.route_options = {
                 "appraisal_year": ["=", apy],

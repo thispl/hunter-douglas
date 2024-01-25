@@ -48,7 +48,6 @@ def execute(filters=None):
                 day_f = str(filters.year) +'-'+str(filters.month)+'-'+str(day) 
             day_f = datetime.strptime(day_f, "%Y-%m-%d").date() 
             # attend = frappe.get_list("Attendance",fields=['in_time','out_time','late_in','early_out','work_time','working_shift','overtime'],filters={'status':'Present','attendance_date':day_f})    
-            frappe.errprint(day_f)
             attend = frappe.db.sql(
                     """select att.late_in,att.working_shift,att.in_time,att.early_out,att.overtime,att.work_time from `tabAttendance` att where att.status='Present' and 
                         att.attendance_date='%s'""" % (day_f) ,as_dict=1)    

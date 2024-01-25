@@ -45,7 +45,7 @@ def execute(filters=None):
 
         working_shift = frappe.db.get_value("Employee", {'employee':att.employee},['working_shift']) 
         if att.in_time:
-            dt = datetime.strptime(att.in_time, "%d/%m/%Y %H:%M:%S")
+            dt = datetime.strptime(att.in_time, '%Y-%m-%d %H:%M:%S')
             from_time = dt.time()
             shift_in_time = frappe.db.get_value("Working Shift",working_shift,"in_time")
             emp_in_time = timedelta(hours=from_time.hour,minutes=from_time.minute,seconds=from_time.second)
@@ -56,7 +56,7 @@ def execute(filters=None):
             row += [from_time.isoformat()]
         else:row += ["-"]
         if att.out_time:
-            dt = datetime.strptime(att.out_time, "%d/%m/%Y %H:%M:%S")
+            dt = datetime.strptime(att.out_time,'%Y-%m-%d %H:%M:%S')
             end_time = dt.time()
             shift_out_time = frappe.db.get_value("Working Shift",working_shift,"out_time")
             emp_out_time = timedelta(hours=end_time.hour,minutes=end_time.minute,seconds=end_time.second)

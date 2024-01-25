@@ -1,0 +1,74 @@
+{
+ "actions": [],
+ "autoname": "EA.####",
+ "creation": "2021-06-10 12:39:25.096812",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "employee_name",
+  "colleague_name",
+  "column_break_3",
+  "date_of_appreciation",
+  "section_break_5",
+  "purpose_of_appreciation"
+ ],
+ "fields": [
+  {
+   "default": "User",
+   "fieldname": "employee_name",
+   "fieldtype": "Link",
+   "label": "Employee Name",
+   "options": "User"
+  },
+  {
+   "fieldname": "colleague_name",
+   "fieldtype": "Link",
+   "label": "Colleague Name",
+   "options": "Employee"
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "date_of_appreciation",
+   "fieldtype": "Date",
+   "label": "Date of appreciation"
+  },
+  {
+   "fieldname": "section_break_5",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "purpose_of_appreciation",
+   "fieldtype": "Text",
+   "label": "Purpose of appreciation"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2021-06-10 14:05:12.151337",
+ "modified_by": "Administrator",
+ "module": "Hunter Douglas",
+ "name": "Employee Appreciation",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "quick_entry": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

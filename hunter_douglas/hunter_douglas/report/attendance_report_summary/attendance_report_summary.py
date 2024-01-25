@@ -15,7 +15,6 @@ def execute(filters=None):
         filters = {}
 
     columns = get_columns()
-    frappe.errprint("hi")
     data = []
     row = []
     leave_type=from_date_session=to_date_session=""
@@ -288,7 +287,6 @@ def get_tm(emp,day):
 def get_continuous_absents(emp,day):
     preday = postday = day
     while validate_if_attendance_not_applicable(emp,postday):
-        # frappe.errprint(postday)
         postday = add_days(postday,1)
     next_day = frappe.db.get_value("Attendance",{"attendance_date":postday,"employee":emp},["status"]) 
     while validate_if_attendance_not_applicable(emp,preday):

@@ -14,9 +14,9 @@ def execute(filters=None):
     columns = get_columns()
     rating = ctc = hike = ""
     for year in range(2016,datetime.now().year+1):
-        columns += [(_(year) + " Ratings::80") ]
-        columns += [(_(year) + " CTC:Currency:100") ]
-        columns += [(_(year) + " Hike::80") ]
+        columns += [("_(year) "+ " Ratings::80") ]
+        columns += [("_(year) "+ " CTC:Currency:100") ]
+        columns += [("_(year) "+ " Hike::80") ]
     for emp in get_employees(filters):
         manager = frappe.get_value("Employee",{"user_id":emp.one_above_manager},"employee_name") 
         hod = frappe.get_value("Employee",{"user_id":emp.hod},"employee_name") 

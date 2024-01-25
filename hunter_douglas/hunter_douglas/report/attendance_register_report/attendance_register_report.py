@@ -575,12 +575,10 @@ def get_continuous_absents(emp,day):
     preday = postday = day
     while validate_if_attendance_not_applicable(emp,postday):
         postday = add_days(postday,1)
-    # frappe.errprint(postday)    
     next_day = frappe.db.get_value("Attendance",{"attendance_date":postday,"employee":emp},["status"])
     next_day_admin_status = frappe.db.get_value("Attendance",{"attendance_date":postday,"employee":emp},["admin_approved_status"]) 
     while validate_if_attendance_not_applicable(emp,preday):
         preday = add_days(preday,-1)   
-    # frappe.errprint(preday)      
     prev_day = frappe.db.get_value("Attendance",{"attendance_date":preday,"employee":emp},["status"]) 
     prev_day_sh = frappe.db.get_value("Attendance",{"attendance_date":preday,"employee":emp},["second_half_status"])   
     prev_day_admin_status = frappe.db.get_value("Attendance",{"attendance_date":preday,"employee":emp},["admin_approved_status"])
@@ -636,8 +634,6 @@ def get_leaves(emp,day):
                 from_date_session = l.from_date_session
                 to_date_session = l.to_date_session
                 session = from_date_session
-            # frappe.errprint(day)
-            # frappe.errprint(session)
             if leave_type == "Privilege Leave":
                 leave = ["PL"]
             elif leave_type == "Casual Leave":
@@ -651,10 +647,8 @@ def get_leaves(emp,day):
                     session = from_date_session 
                 else:  
                     if half_day_date == day:
-                        # frappe.errprint(day)
                         session = from_date_session
                     elif half_day_date == day:
-                        # frappe.errprint(day)
                         session = to_date_session 
                     else:
                         session = leave

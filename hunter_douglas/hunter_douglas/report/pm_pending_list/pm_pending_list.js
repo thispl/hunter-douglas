@@ -30,28 +30,28 @@ frappe.query_reports["PM Pending List"] = {
 		}
 
 	],
-	"formatter": function (row, cell, value, columnDef, dataContext, default_formatter) {
-		value = default_formatter(row, cell, value, columnDef, dataContext);
-		if (columnDef.id == "Self Status") {
-			if (dataContext["Self Status"] === "Completed") {
-				value = "<span style='color:green!important;font-weight:bold'>" + value + "</span>";
-			}
-		}
-		if (columnDef.id == "Manager Status") {
-		if (dataContext["Manager Status"] === "Completed") {
-			value = "<span style='color:green!important;font-weight:bold'>" + value + "</span>";
-		}
-		}	
-		if (columnDef.id == "HOD Status") {
-		if (dataContext["HOD Status"] === "Completed") {
-			value = "<span style='color:green!important;font-weight:bold'>" + value + "</span>";
-		}
-	}
-	if (columnDef.id == "Reviewer Status") {
-		if (dataContext["Reviewer Status"] === "Completed") {
-			value = "<span style='color:green!important;font-weight:bold'>" + value + "</span>";
-		}
-	}
-		return value;
-	},
+	// "formatter": function (row, cell, value, columnDef, dataContext, default_formatter) {
+	// 	value = default_formatter(row, cell, value, columnDef, dataContext);
+	// 	if (columnDef.id == "Self Status") {
+	// 		if (dataContext["Self Status"] === "Completed") {
+	// 			value = "<span style='color:green!important;font-weight:bold'>" + value + "</span>";
+	// 		}
+	// 	}
+	// 	if (columnDef.id == "Manager Status") {
+	// 	if (dataContext["Manager Status"] === "Completed") {
+	// 		value = "<span style='color:green!important;font-weight:bold'>" + value + "</span>";
+	// 	}
+	// 	}	
+	// 	if (columnDef.id == "HOD Status") {
+	// 	if (dataContext["HOD Status"] === "Completed") {
+	// 		value = "<span style='color:green!important;font-weight:bold'>" + value + "</span>";
+	// 	}
+	// }
+	// if (columnDef.id == "Reviewer Status") {
+	// 	if (dataContext["Reviewer Status"] === "Completed") {
+	// 		value = "<span style='color:green!important;font-weight:bold'>" + value + "</span>";
+	// 	}
+	// }
+	// 	return value;
+	// },
 }

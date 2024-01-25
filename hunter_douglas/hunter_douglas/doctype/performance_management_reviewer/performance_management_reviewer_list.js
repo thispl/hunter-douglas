@@ -1,7 +1,21 @@
 frappe.listview_settings['Performance Management Reviewer'] = {
-    // onload:function(frm){
-    //     frm.trigger("refresh")
-    // },
+    onload:function(listview){
+        frappe.model.get_value('Employee', { 'user_id': frappe.session.user }, 'employee_number',
+        function (data) {
+            if (data) {
+                listview.filter_area.clear()
+                // listview.filter_area.add([[listview.doctype, "employee_code", '=', data.employee_number]]);
+                listview.filter_area.add([[listview.doctype, "appraisal_year", '=', "2022"]]);
+                listview.refresh();     }
+        })
+        if(!frappe.user.has_role("System Manager")){
+            var d  = new Date()
+            var apy = d.getFullYear() - 1
+            frappe.route_options = {
+                "appraisal_year": ["=", apy],
+            };
+        }
+    },
     refresh: function (me) {
     //     if(!frappe.user.has_role("System Manager")){
     //     d = new Date()

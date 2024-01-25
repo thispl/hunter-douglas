@@ -1,0 +1,95 @@
+{
+ "actions": [],
+ "creation": "2021-06-28 17:13:35.706901",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "attendance_id",
+  "employee",
+  "employee_name",
+  "designation",
+  "department",
+  "attendance_date",
+  "overtime",
+  "from_time",
+  "to_time",
+  "submit"
+ ],
+ "fields": [
+  {
+   "fetch_from": "attendance_id.emloyee",
+   "fieldname": "employee",
+   "fieldtype": "Data",
+   "label": "Employee"
+  },
+  {
+   "fetch_from": "attendance_id.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Employee Name"
+  },
+  {
+   "fetch_from": "attendance_id.designation",
+   "fieldname": "designation",
+   "fieldtype": "Data",
+   "label": "Designation"
+  },
+  {
+   "fetch_from": "attendance_id.department",
+   "fieldname": "department",
+   "fieldtype": "Data",
+   "label": "Department"
+  },
+  {
+   "fetch_from": "attendance_id.attendance_date",
+   "fieldname": "attendance_date",
+   "fieldtype": "Data",
+   "label": "Attendance Date"
+  },
+  {
+   "fetch_from": "attendance_id.overtime",
+   "fieldname": "overtime",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Overtime"
+  },
+  {
+   "fieldname": "attendance_id",
+   "fieldtype": "Data",
+   "label": "Attendance ID"
+  },
+  {
+   "fieldname": "submit",
+   "fieldtype": "Button",
+   "in_list_view": 1,
+   "label": "Submit"
+  },
+  {
+   "fieldname": "from_time",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "From Time"
+  },
+  {
+   "fieldname": "to_time",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "To Time"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2021-06-29 16:09:37.984516",
+ "modified_by": "Administrator",
+ "module": "Hunter Douglas",
+ "name": "OT Table",
+ "owner": "Administrator",
+ "permissions": [],
+ "quick_entry": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

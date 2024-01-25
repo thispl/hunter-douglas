@@ -84,6 +84,9 @@ doc_events = {
     {
         "on_update": "hunter_douglas.custom.update_comp_off"
     },
+    "Employee":{
+		"validate": "hunter_douglas.custom.inactive_employee"
+	},
     "Performance Management Self":
     {
         "on_submit": "hunter_douglas.pm_utils.update_pm_manager"
@@ -100,15 +103,15 @@ doc_events = {
     # {
     #     "on_submit": "hunter_douglas.custom.update_pm_calibration"
     # }
-    # "On Duty Application":
-    # {
-    #     "on_submit": "hunter_douglas.hunter_douglas.doctype.on_duty_application.on_duty_application.on_duty_mark",
-    # },
-    "Travel Management":
+    "On Duty Application":
     {
-        "on_cancel": "hunter_douglas.hunter_douglas.doctype.travel_management.travel_management.delete_tour_application",
-        # "on_submit": "hunter_douglas.hunter_douglas.doctype.travel_management.travel_management.send_ticket_copy",
-    }
+        "on_submit": "hunter_douglas.hunter_douglas.doctype.on_duty_application.on_duty_application.on_duty_mark",
+    },
+    # "Travel Management":
+    # {
+    #     "on_cancel": "hunter_douglas.hunter_douglas.doctype.travel_management.travel_management.delete_tour_application",
+    #     # "on_submit": "hunter_douglas.hunter_douglas.doctype.travel_management.travel_management.send_ticket_copy",
+    # }
     # "*": {
     # 	"on_update": "method",
     # 	"on_cancel": "method",
@@ -125,13 +128,11 @@ scheduler_events = {
 # 	],
     "daily": [
         "hunter_douglas.custom.fetch_att_prev",
-<<<<<<< HEAD
-        "hunter_douglas.update_attendance.mark_hd"
-=======
         "hunter_douglas.update_attendance.mark_hd",
-        "hunter_douglas.hunter_douglas.doctype.induction_test.induction_test.create_feedback"
-        "hunter_douglas.hunter_douglas.doctype.birthday_wishes.birthday_wishes.send_birthday_wish"
->>>>>>> 7326702e0fb20d5d79f1197efee756a29a62c7cc
+        "hunter_douglas.hunter_douglas.doctype.induction_test.induction_test.create_feedback",
+        "hunter_douglas.custom.create_ot",
+        # "hunter_douglas.mark_attendance.mark_att"
+        # "hunter_douglas.hunter_douglas.doctype.birthday_wishes.birthday_wishes.send_birthday_wish"
     ],
     "cron": {
         "0 7-23/1 * * *":[
@@ -149,16 +150,13 @@ scheduler_events = {
         "00 19 * * *":[
             "hunter_douglas.custom.fetch_att"
             "hunter_douglas.custom.out_punch_alert"
-<<<<<<< HEAD
-=======
         ],
         "0 0 1 1 *":[
             "hunter_douglas.custom.retirement_alert"
-        ],
-        "* 17 * * *":[
-            "hunter_douglas.hunter_douglas.doctype.mark_attendance.mark_attendance.auto_outtime"
->>>>>>> 7326702e0fb20d5d79f1197efee756a29a62c7cc
         ]
+        # "* 18 * * *":[
+        #     "hunter_douglas.hunter_douglas.doctype.mark_attendance.mark_attendance.auto_outtime"
+        # ]
     }
 # 	"weekly": [
 # 		"hunter_douglas.tasks.weekly"
@@ -180,10 +178,5 @@ scheduler_events = {
 # 	"frappe.desk.doctype.event.event.get_events": "hunter_douglas.event.get_events"
 # }
 
-<<<<<<< HEAD
-
-fixtures = [ 'Custom Field', 'Custom Script']
-=======
 fixtures = ['Custom Field','Custom Script','Print Format']
 
->>>>>>> 7326702e0fb20d5d79f1197efee756a29a62c7cc
